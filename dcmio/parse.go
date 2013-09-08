@@ -5,18 +5,33 @@ import (
     "github.com/kamper/dcm/dcm"
     "errors"
     "io"
+    "io/ioutil"
 )
 
-type Tag struct {
-    Group uint16
-    Tag   uint16
-    VR    dcm.VR
-    Value io.Reader
+type positionReader struct {
+    position uint64
+    in io.Reader
+}
 
-    // TODO: remember stream offsets of header and value?
+func (pr *positionReader) Read(p []byte) (n int, err error) {
+    n, err = pr.in.Read(p)
+    pr.position += uint64(n)
+    return
+}
+
+type Tag struct {
+    // offset beginning of header
+    Offset uint64
+    Group  uint16
+    Tag    uint16
+    VR     dcm.VR
+    ValueOffset uint64
+    ValueLength int32
+    Value  io.Reader
 }
 
 type Parser struct {
+    basein *positionReader
     in io.Reader
     // these kind of imitate the transfer syntax:
     order bin.ByteOrder
@@ -24,36 +39,69 @@ type Parser struct {
 
     Preamble [128]byte
 
+    previousTag *Tag
+
     // TODO: store sequence / item stack...
     // TODO: remember stream position
 }
 
-func (p *Parser) readTag(tag *Tag) (err error) {
-    err = bin.Read(p.in, p.order, &tag.Group)
-    if err != nil {
-        return err
-    }
-
-    return bin.Read(p.in, p.order, &tag.Tag)
+func (p *Parser) GetPosition() uint64 {
+    return p.basein.position
 }
 
-// TODO: differentiate between EOF as error and legitimate finish
-// probably we want to return a nil Tag
-func (p *Parser) NextTag() (tag Tag, err error) {
-    // TODO: make sure previous value is drained...
+func (p *Parser) readTag() (tag *Tag, err error) {
+    offset := p.GetPosition()
+
+    var bytes [4]byte
+    _, err = io.ReadFull(p.in, bytes[:])
+
+    if err == io.EOF {
+        // 0 bytes read, legitimate EOF
+        return nil, nil
+    } else if err != nil {
+        return nil, err
+    }
+
+    tag = new(Tag)
+
+    tag.Offset = offset
+    tag.Group  = p.order.Uint16(bytes[:2])
+    tag.Tag    = p.order.Uint16(bytes[2:])
+
+    return tag, nil
+}
+
+func (p *Parser) skipPreviousValue() (err error) {
+    if p.previousTag != nil {
+        _, err = io.Copy(ioutil.Discard, p.previousTag.Value)
+    }
+    return err
+}
+
+// Returns (nil, nil) if there are no more tags.
+func (p *Parser) NextTag() (tag *Tag, err error) {
+    err = p.skipPreviousValue()
+    if err != nil {
+        return nil, err
+    }
+
     // TODO: detect when finished file meta info and switch ts
 
-    err = p.readTag(&tag)
-    if err != nil {
-        return tag, err
+    tag, err = p.readTag()
+    if tag == nil {
+        return nil, err
     }
+
+    p.previousTag = tag
+
+    tag.ValueOffset = p.GetPosition()
 
     if dcm.TagHasVR(tag.Group, tag.Tag) && p.explicitVR {
         var code uint16
         // always big endian?
         err = bin.Read(p.in, bin.BigEndian, &code)
         if err != nil {
-            return tag, err
+            return nil, err
         }
 
         tag.VR = dcm.GetVR(code)
@@ -61,12 +109,13 @@ func (p *Parser) NextTag() (tag Tag, err error) {
         var vallen uint16
         err = bin.Read(p.in, p.order, &vallen)
         if err != nil {
-            return tag, err
+            return nil, err
         }
 
         // if header is longer, the previous 2 bytes were actually just
         // meaningless filler
         if tag.VR.HeaderLength == 8 {
+            tag.ValueLength = int32(vallen)
             // TODO: make sure vallen != -1
             tag.Value = io.LimitReader(p.in, int64(vallen))
             return tag, nil
@@ -77,9 +126,10 @@ func (p *Parser) NextTag() (tag Tag, err error) {
     var vallen int32
     err = bin.Read(p.in, p.order, &vallen)
     if err != nil {
-        return tag, err
+        return nil, err
     }
 
+    tag.ValueLength = vallen
     // TODO: make sure vallen != -1
     tag.Value = io.LimitReader(p.in, int64(vallen))
 
@@ -88,11 +138,17 @@ func (p *Parser) NextTag() (tag Tag, err error) {
 
 // Construct a new Parser for a part-10 file
 func NewFileParser(in io.Reader) (p Parser, err error) {
-    // these are the defaults for group 2:
-    p = Parser{ in: in, order: bin.LittleEndian, explicitVR: true }
+    basein := positionReader{position: 0, in: in}
+    p = Parser{
+        basein: &basein,
+        in: &basein,
+        // these are the defaults for group 2:
+        order: bin.LittleEndian,
+        explicitVR: true,
+    }
 
     var preamble [132]byte
-    numRead, err := io.ReadFull(in, preamble[:])
+    numRead, err := io.ReadFull(p.in, preamble[:])
     if numRead < len(preamble) {
         return p, io.EOF
     }

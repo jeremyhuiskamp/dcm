@@ -6,8 +6,6 @@ import (
     "flag"
     "fmt"
     "log"
-    "io"
-    "io/ioutil"
     "os"
 )
 
@@ -25,18 +23,17 @@ func main() {
 
     for {
         tag, err := p.NextTag()
-        if err == io.EOF {
-            fmt.Println("EOF")
-            break
-        } else if err != nil {
+        if err != nil {
             log.Fatal(err)
+        } else if tag == nil {
+            break
         } else {
-            written, err := io.Copy(ioutil.Discard, tag.Value)
-            if err != nil {
-                log.Fatal(err)
-            }
-            fmt.Printf("(%04X,%04X) VR=%s, VL=%d\n",
-                tag.Group, tag.Tag, dcm.VRName(tag.VR), written)
+            fmt.Printf("%d:(%04X,%04X) %s #%d\n",
+                tag.Offset,
+                tag.Group,
+                tag.Tag,
+                dcm.VRName(tag.VR),
+                tag.ValueLength)
         }
     }
 }
