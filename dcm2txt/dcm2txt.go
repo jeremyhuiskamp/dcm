@@ -1,7 +1,6 @@
 package main
 
 import (
-    "github.com/kamper/dcm/dcm"
     "github.com/kamper/dcm/dcmio"
     "flag"
     "fmt"
@@ -32,7 +31,7 @@ func main() {
                 tag.Offset,
                 tag.Group,
                 tag.Tag,
-                dcm.VRName(tag.VR),
+                tag.VR.Name,
                 tag.ValueLength)
         }
     }
