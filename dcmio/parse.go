@@ -46,14 +46,13 @@ type Parser interface {
     NextTag() (*Tag, error)
 }
 
+// SimpleParser is a Parser implementation that simply reads
+// from the stream, always assuming a given transfer syntax
 type SimpleParser struct {
     basein      *positionReader
     in          io.Reader
 
-    // These kind of imitate the transfer syntax.
-    // TODO: replace with ts api
-    order       bin.ByteOrder
-    explicitVR  bool
+    ts          dcm.TransferSyntax
 
     // track the previous tag we returned, so that we can
     // make sure it's stream is drained
@@ -65,7 +64,8 @@ func (p *SimpleParser) GetPosition() uint64 {
 }
 
 func (p *SimpleParser) readTag() (tag *Tag, err error) {
-    offset := p.GetPosition()
+    tag = new(Tag)
+    tag.Offset = p.GetPosition()
 
     var bytes [4]byte
     _, err = io.ReadFull(p.in, bytes[:])
@@ -77,11 +77,9 @@ func (p *SimpleParser) readTag() (tag *Tag, err error) {
         return nil, err
     }
 
-    tag = new(Tag)
-
-    tag.Offset = offset
-    tag.Group  = p.order.Uint16(bytes[:2])
-    tag.Tag    = p.order.Uint16(bytes[2:])
+    order    := p.ts.ByteOrder()
+    tag.Group = order.Uint16(bytes[:2])
+    tag.Tag   = order.Uint16(bytes[2:])
 
     return tag, nil
 }
@@ -93,7 +91,6 @@ func (p *SimpleParser) skipPreviousValue() (err error) {
     return err
 }
 
-// Returns (nil, nil) if there are no more tags.
 func (p *SimpleParser) NextTag() (tag *Tag, err error) {
     err = p.skipPreviousValue()
     if err != nil {
@@ -109,25 +106,24 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
 
     tag.ValueOffset = p.GetPosition()
 
-    if dcm.TagHasVR(tag.Group, tag.Tag) && p.explicitVR {
-        var code uint16
-        // always big endian?
-        err = bin.Read(p.in, bin.BigEndian, &code)
+    if dcm.TagHasVR(tag.Group, tag.Tag) && p.ts.VR() == dcm.Explicit {
+        var vr [2]byte
+        _, err = io.ReadFull(p.in, vr[:])
         if err != nil {
             return nil, err
         }
 
-        tag.VR = dcm.GetVR(code)
+        tag.VR = dcm.GetVR(string(vr[:]))
 
         var vallen uint16
-        err = bin.Read(p.in, p.order, &vallen)
+        err = bin.Read(p.in, p.ts.ByteOrder(), &vallen)
         if err != nil {
             return nil, err
         }
 
         // if header is longer, the previous 2 bytes were actually just
         // meaningless filler
-        if tag.VR.HeaderLength == 8 {
+        if !tag.VR.Long {
             tag.ValueLength = int32(vallen)
             // TODO: make sure vallen != -1
             tag.Value = io.LimitReader(p.in, int64(vallen))
@@ -137,7 +133,7 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
 
     // nb: signed, it can be -1
     var vallen int32
-    err = bin.Read(p.in, p.order, &vallen)
+    err = bin.Read(p.in, p.ts.ByteOrder(), &vallen)
     if err != nil {
         return nil, err
     }
@@ -156,6 +152,9 @@ const (
     pastGroup2
 )
 
+// Part10Parser is a Parser implementation that manages multiple
+// SimpleParser instances to read the parts of the file that have
+// different transfer syntaxes
 type Part10Parser struct {
     basein      *positionReader
     parser      SimpleParser
@@ -189,13 +188,15 @@ func (p* Part10Parser) NextTag() (tag *Tag, err error) {
 
             // TODO: validate VR and VL?
             var fmiLength uint32
-            bin.Read(&buf, p.ts.ByteOrder(), &fmiLength)
+            err = bin.Read(&buf, p.ts.ByteOrder(), &fmiLength)
+            if err != nil {
+                return nil, err
+            }
 
             p.parser = SimpleParser{
-                basein:     p.basein,
-                in:         io.LimitReader(p.basein, int64(fmiLength)),
-                order:      p.ts.ByteOrder(),
-                explicitVR: p.ts.VR() == dcm.Explicit,
+                basein: p.basein,
+                in:     io.LimitReader(p.basein, int64(fmiLength)),
+                ts:     p.ts,
             }
         }
 
@@ -217,10 +218,9 @@ func (p* Part10Parser) NextTag() (tag *Tag, err error) {
             }
 
             p.parser = SimpleParser{
-                basein:     p.basein,
-                in:         p.basein,
-                order:      p.ts.ByteOrder(),
-                explicitVR: p.ts.VR() == dcm.Explicit,
+                basein: p.basein,
+                in:     p.basein,
+                ts:     p.ts,
             }
 
             // recurse:
@@ -246,7 +246,6 @@ func (p* Part10Parser) NextTag() (tag *Tag, err error) {
     }
 }
 
-// Reads the tag value into a buffer
 func bufferValue(tag *Tag) (buf bytes.Buffer, err error) {
     _, err = buf.ReadFrom(tag.Value)
     if err != nil {
@@ -282,10 +281,9 @@ func NewFileParser(in io.Reader) (Parser, error) {
     p := &Part10Parser{
         basein:     &basein,
         parser:     SimpleParser{
-                        basein:     &basein,
-                        in:         &basein,
-                        order:      defTS.ByteOrder(),
-                        explicitVR: defTS.VR() == dcm.Explicit,
+                        basein: &basein,
+                        in:     &basein,
+                        ts:     defTS,
                     },
         ts:         defTS,
         state:      beforeGroup2,
@@ -295,14 +293,13 @@ func NewFileParser(in io.Reader) (Parser, error) {
 }
 
 // Construct a new Parser for a stream without a part-10 header
-func NewStreamParser(in io.Reader, order bin.ByteOrder, explicitVR bool) Parser {
+func NewStreamParser(in io.Reader, ts dcm.TransferSyntax) Parser {
     basein := positionReader{position: 0, in: in}
 
     return &SimpleParser{
         basein: &basein,
-        in: &basein,
-        order: order,
-        explicitVR:
-        explicitVR,
+        in:     &basein,
+        ts:     ts,
     }
 }
+
