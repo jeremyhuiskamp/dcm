@@ -20,14 +20,15 @@ func (pr *positionReader) Read(p []byte) (n int, err error) {
 }
 
 type Tag struct {
-    // offset beginning of header
-    Offset uint64
-    Group  uint16
-    Tag    uint16
-    VR     dcm.VR
+    // offset of beginning of header from start of stream
+    Offset      uint64
+    Group       uint16
+    Tag         uint16
+    VR          dcm.VR
+    // offset of beginning of value from start of stream
     ValueOffset uint64
     ValueLength int32
-    Value  io.Reader
+    Value       io.Reader
 }
 
 type Parser struct {
@@ -164,6 +165,7 @@ func NewFileParser(in io.Reader) (p Parser, err error) {
         return p, errors.New("Not a Part10 file")
     }
 
+    // TODO: we should actually deliver group length to the caller...
     tag, err := p.NextTag()
     if err != nil {
         return p, err
