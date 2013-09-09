@@ -1,5 +1,11 @@
 package dcmio
 
+// Things to try to add:
+// - switch transfer syntaxes in sequence items with an unknown VR
+// - implement fast jumps over known-length things
+// -- eg, if we have group, sequence or item lengths
+// -- might want to check if underlying stream supports seek, for speed
+
 import (
     bin "encoding/binary"
     "bytes"
@@ -29,7 +35,7 @@ type Tag struct {
     Offset      uint64
     Group       uint16
     Tag         uint16
-    VR          dcm.VR
+    VR          *dcm.VR
     // offset of beginning of value from start of stream
     ValueOffset uint64
     ValueLength int32

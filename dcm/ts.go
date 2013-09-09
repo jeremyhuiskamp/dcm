@@ -58,7 +58,7 @@ func (ts *transferSyntax) PixelStorage() PixelStorage {
     return ts.pixelStorage
 }
 
-var tsmap map[string]TransferSyntax = make(map[string]TransferSyntax)
+var tsmap = make(map[string]TransferSyntax)
 
 func regts(ts TransferSyntax) TransferSyntax {
     tsmap[ts.UID()] = ts
@@ -74,6 +74,7 @@ var (
             Inflated,
             Native,
         })
+
     ImplicitVRLittleEndian = regts(&transferSyntax{
             "1.2.840.10008.1.2",
             binary.LittleEndian,
@@ -81,6 +82,7 @@ var (
             Inflated,
             Native,
         })
+
     ExplicitVRBigEndian = regts(&transferSyntax{
             "1.2.840.10008.1.2.2",
             binary.BigEndian,
@@ -88,6 +90,7 @@ var (
             Inflated,
             Native,
         })
+
     ImplicitVRBigEndian = regts(&transferSyntax{
             "1.2.840.113619.5.2",
             binary.BigEndian,

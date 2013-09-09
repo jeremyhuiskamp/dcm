@@ -8,12 +8,11 @@ type VR struct {
     // Used to pad odd-length values.
     Padding byte
 
-    // Whether the VR requires 4 bytes to encode its
-    // length
+    // Whether the VR requires 4 bytes to encode its length
     Long    bool
 }
 
-var vrmap map[string]VR = make(map[string]VR)
+var vrmap = make(map[string]VR)
 
 func vr(name string, padding byte, long bool) VR {
     vr := VR{name, padding, long}
@@ -22,11 +21,11 @@ func vr(name string, padding byte, long bool) VR {
 }
 
 const (
-    // padding values:
+    // VR.Padding values:
     text byte = ' '
     bin       = 0
 
-    // Long values:
+    // VR.Long values:
     long bool = true
     short     = false
 )
@@ -64,12 +63,12 @@ var (
     //?? = vr("??",  bin,  long)
 )
 
-func GetVR(name string) VR {
+func GetVR(name string) *VR {
     if vr, ok := vrmap[name]; ok {
-        return vr
+        return &vr
     }
 
-    return UN
+    return &UN
 }
 
 func TagHasVR(group, tag uint16) bool {
