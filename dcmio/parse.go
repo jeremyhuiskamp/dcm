@@ -10,9 +10,11 @@ import (
     bin "encoding/binary"
     "bytes"
     "github.com/kamper/dcm/dcm"
+    "github.com/kamper/dcm/dcmtag"
     "errors"
     "io"
     "io/ioutil"
+    "strings"
 )
 
 // positionReader wraps another io.Reader and counts the
@@ -110,9 +112,11 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
 
     p.previousTag = tag
 
-    tag.ValueOffset = p.GetPosition()
+    // we leave the stream at the beginning of the value, so:
+    defer func() { tag.ValueOffset = p.GetPosition() }()
 
     if dcm.TagHasVR(tag.Group, tag.Tag) && p.ts.VR() == dcm.Explicit {
+
         var vr [2]byte
         _, err = io.ReadFull(p.in, vr[:])
         if err != nil {
@@ -127,15 +131,22 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
             return nil, err
         }
 
-        // if header is longer, the previous 2 bytes were actually just
-        // meaningless filler
         if !tag.VR.Long {
             tag.ValueLength = int32(vallen)
             // TODO: make sure vallen != -1
             tag.Value = io.LimitReader(p.in, int64(vallen))
             return tag, nil
         }
+
+        // if header is long, the previous 2 bytes were actually just
+        // meaningless filler and we go on to do the 4-byte length
+
+    } else {
+        // implicit vr, have to guess:
+        vr := dcmtag.GroupTagVR(tag.Group, tag.Tag)
+        tag.VR = &vr
     }
+
 
     // nb: signed, it can be -1
     var vallen int32
@@ -153,7 +164,7 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
 
 type part10state int
 const (
-    beforeGroup2 = iota
+    beforeGroup2 part10state = iota
     inGroup2
     pastGroup2
 )
@@ -240,7 +251,10 @@ func (p* Part10Parser) NextTag() (tag *Tag, err error) {
             }
 
             // TODO: learn how buf.String() handles charsets
-            p.ts = dcm.GetTransferSyntax(buf.String())
+            // TODO: factor this out into a better place
+            tsstr := strings.Trim(buf.String(), " \x00")
+
+            p.ts = dcm.GetTransferSyntax(tsstr)
         }
 
         return tag, nil
