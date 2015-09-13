@@ -66,20 +66,19 @@ func main() {
         return
     }
 
-    rq := dcmnet.AAssociateRQAC{
+    rq := dcmnet.AssociateRQAC{
         ProtocolVersion: 1,
         CalledAE: calledAE,
         CallingAE: callingAE,
         PresentationContexts: []dcmnet.PresentationContext{
             dcmnet.PresentationContext{
                 Id: 1,
-                Result: 0,
                 AbstractSyntax: "1.2.840.10008.1.1",
                 TransferSyntaxes: []string{"1.2.840.10008.1.2"},
             },
         },
     }
-    fmt.Printf("Sending %s\n", rq)
+    fmt.Printf("Sending %v\n", rq)
 
     var buf bytes.Buffer
     rq.Write(&buf)
@@ -87,14 +86,14 @@ func main() {
 
     _, pduSrc := readPDU(conn)
 
-    ac := dcmnet.AAssociateRQAC{}
+    ac := dcmnet.AssociateRQAC{}
     ac.Read(pduSrc)
-    fmt.Printf("Read %s\n", ac)
+    fmt.Printf("Read %v\n", ac)
 
     var release bytes.Buffer
     binary.Write(&release, binary.LittleEndian, uint16(0))
     binary.Write(&release, binary.LittleEndian, uint16(0))
-    writePDU(conn, 0x05, release)
+    writePDU(conn, uint16(dcmnet.PDUReleaseRQ), release)
 
     conn.Close()
 }

@@ -3,7 +3,6 @@ package main
 import (
     "github.com/kamper/dcm/dcm"
     "github.com/kamper/dcm/dcmio"
-    "github.com/kamper/dcm/dcmtag"
     "flag"
     "fmt"
     "log"
@@ -33,10 +32,9 @@ func main() {
             break
 
         } else {
-            fmt.Printf("%d:%s(%04X,%04X)%s #%d %s\n",
+            fmt.Printf("%d:%s%s%s #%d %s\n",
                 tag.Offset,
                 indent(nest),
-                tag.Group,
                 tag.Tag,
                 vrToString(tag.VR),
                 tag.ValueLength,
@@ -45,7 +43,7 @@ func main() {
             // hmm, how can we compare identity and not values?
             if tag.VR != nil && *tag.VR == dcm.SQ {
                 nest++
-            } else if tag.Group == 0xFFFE && tag.Tag == 0xE0DD {
+            } else if tag.Tag == dcm.ItemDelimitationItem {
                 nest--
             }
         }
@@ -67,9 +65,9 @@ func vrToString(vr *dcm.VR) (s string) {
 }
 
 func desc(tag *dcmio.Tag) string {
-    t := dcmtag.GetGroupTag(tag.Group, tag.Tag)
-    if t != nil {
-        return t.Desc
+    d := dcm.SpecForTag("", tag.Tag)
+    if d != nil {
+        return d.GetDesc()
     }
 
     return "??"
