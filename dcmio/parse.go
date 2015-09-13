@@ -10,7 +10,6 @@ import (
     bin "encoding/binary"
     "bytes"
     "github.com/kamper/dcm/dcm"
-    "github.com/kamper/dcm/dcmtag"
     "errors"
     "io"
     "io/ioutil"
@@ -35,8 +34,7 @@ func (pr *positionReader) Read(p []byte) (n int, err error) {
 type Tag struct {
     // offset of beginning of header from start of stream
     Offset      uint64
-    Group       uint16
-    Tag         uint16
+    Tag         dcm.Tag
     VR          *dcm.VR
     // offset of beginning of value from start of stream
     ValueOffset uint64
@@ -85,9 +83,10 @@ func (p *SimpleParser) readTag() (tag *Tag, err error) {
         return nil, err
     }
 
-    order    := p.ts.ByteOrder()
-    tag.Group = order.Uint16(bytes[:2])
-    tag.Tag   = order.Uint16(bytes[2:])
+    order   := p.ts.ByteOrder()
+    tag.Tag = dcm.NewTag(
+                order.Uint16(bytes[ :2]),
+                order.Uint16(bytes[2: ]))
 
     return tag, nil
 }
@@ -115,7 +114,7 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
     // we leave the stream at the beginning of the value, so:
     defer func() { tag.ValueOffset = p.GetPosition() }()
 
-    if dcm.TagHasVR(tag.Group, tag.Tag) && p.ts.VR() == dcm.Explicit {
+    if tag.Tag.HasVR() && p.ts.VR() == dcm.Explicit {
 
         var vr [2]byte
         _, err = io.ReadFull(p.in, vr[:])
@@ -123,7 +122,7 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
             return nil, err
         }
 
-        tag.VR = dcm.GetVR(string(vr[:]))
+        tag.VR = dcm.GetVRByName(string(vr[:]))
 
         var vallen uint16
         err = bin.Read(p.in, p.ts.ByteOrder(), &vallen)
@@ -143,10 +142,10 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
 
     } else {
         // implicit vr, have to guess:
-        vr := dcmtag.GroupTagVR(tag.Group, tag.Tag)
+        // TODO: track private creator uids
+        vr := dcm.VRForTag("", tag.Tag)
         tag.VR = &vr
     }
-
 
     // nb: signed, it can be -1
     var vallen int32
@@ -195,7 +194,7 @@ func (p* Part10Parser) NextTag() (tag *Tag, err error) {
             return nil, nil
         }
 
-        if tag.Group == 0x0002 && tag.Tag == 0x0000 {
+        if tag.Tag == dcm.FileMetaInformationGroupLength {
             p.state = inGroup2
 
             buf, err := bufferValue(tag)
@@ -244,7 +243,7 @@ func (p* Part10Parser) NextTag() (tag *Tag, err error) {
             return p.NextTag()
         }
 
-        if tag.Tag == 0x0010 {
+        if tag.Tag == dcm.TransferSyntaxUID {
             buf, err := bufferValue(tag)
             if err != nil {
                 return tag, err
@@ -322,4 +321,3 @@ func NewStreamParser(in io.Reader, ts dcm.TransferSyntax) Parser {
         ts:     ts,
     }
 }
-

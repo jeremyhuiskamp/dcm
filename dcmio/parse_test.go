@@ -2,7 +2,6 @@ package dcmio
 
 import (
     "github.com/kamper/dcm/dcm"
-    tag "github.com/kamper/dcm/dcmtag"
     "testing"
     "bytes"
 )
@@ -37,7 +36,7 @@ func combine(bs ... []byte) []byte {
     return combined
 }
 
-func assertElement(t *testing.T, el *Tag, offset uint64, tag tag.Tag,
+func assertElement(t *testing.T, el *Tag, offset uint64, tag dcm.Tag,
                 vr *dcm.VR, valueOffset uint64, valueLength int32) {
     if el == nil {
         t.Fatal("element == nil")
@@ -47,17 +46,13 @@ func assertElement(t *testing.T, el *Tag, offset uint64, tag tag.Tag,
         t.Fatal("Wrong offset:", el.Offset, "(expected:", offset, ")")
     }
 
-    if el.Group != tag.Group {
-        t.Fatalf("Wrong group: %04X (expected: %04X)", el.Group, tag.Group)
-    }
-
-    if el.Tag != tag.Tag {
-        t.Fatalf("Wrong tag: %04X (expected: %04X)", el.Tag, tag.Tag)
-    }
+	if el.Tag != tag {
+		t.Fatalf("Wrong tag: %s (expected %s", el.Tag, tag)
+	}
 
     // TODO: this blows up for nil
     if *el.VR != *vr {
-        t.Fatalf("Wrong vr: %s (expected %s)", el.VR, vr)
+        t.Fatalf("Wrong vr for %s: %v (expected %v)", el.Tag, el.VR, vr)
     }
 
     if el.ValueOffset != valueOffset {
@@ -74,7 +69,7 @@ func assertElement(t *testing.T, el *Tag, offset uint64, tag tag.Tag,
 }
 
 func assertNextElement(t *testing.T, p Parser, offset uint64,
-                    tag tag.Tag, vr *dcm.VR, valueOffset uint64,
+                    tag dcm.Tag, vr *dcm.VR, valueOffset uint64,
                     valueLength int32) {
     el, err := p.NextTag()
 
@@ -116,9 +111,9 @@ func TestPart10Ivrle(t *testing.T) {
     }
 
     // TODO: assert values
-    assertNextElement(t, p, 132, tag.FileMetaInformationGroupLength, &dcm.UL, 140,  4)
-    assertNextElement(t, p, 144, tag.TransferSyntaxUID,              &dcm.UI, 152, 18)
-    assertNextElement(t, p, 170, tag.PatientID,                      &dcm.LO, 178,  4)
+    assertNextElement(t, p, 132, dcm.FileMetaInformationGroupLength, &dcm.UL, 140,  4)
+    assertNextElement(t, p, 144, dcm.TransferSyntaxUID,              &dcm.UI, 152, 18)
+    assertNextElement(t, p, 170, dcm.PatientID,                      &dcm.LO, 178,  4)
     assertNoMoreElements(t, p)
 }
 
