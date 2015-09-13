@@ -1,113 +1,94 @@
 package dcmnet
 
 import (
-    "encoding/binary"
-    "io"
-    "io/ioutil"
+	"encoding/binary"
+	"io"
+	"io/ioutil"
 )
 
-// PDU Types
+type PDUType uint8
+
+//go:generate stringer -type PDUType
 const (
-    AssociateRQ uint8 = 0x01
-    AssociateAC       = 0x02
-    AssociateRJ       = 0x03
-    PresentationData  = 0x04
-    ReleaseRQ         = 0x05
-    ReleaseRP         = 0x06
-    Abort             = 0x07
+	PDUAssociateRQ      PDUType = 0x01
+	PDUAssociateAC      PDUType = 0x02
+	PDUAssociateRJ      PDUType = 0x03
+	PDUPresentationData PDUType = 0x04
+	PDUReleaseRQ        PDUType = 0x05
+	PDUReleaseRP        PDUType = 0x06
+	PDUAbort            PDUType = 0x07
 )
 
 // Protocol Data Unit
 type PDU struct {
-    Type uint8
-    Length uint32
-    Data io.Reader
+	Type   PDUType
+	Length uint32
+	Data   io.Reader
 }
 
 // PDUReader parses a stream for PDUs
 type PDUReader struct {
-    data io.Reader
-    lastPDU *PDU
+	data    io.Reader
+	lastPDU *PDU
 }
 
-func NewPDUReader(data io.Reader) (PDUReader) {
-    return PDUReader{data, nil}
+func NewPDUReader(data io.Reader) PDUReader {
+	return PDUReader{data, nil}
 }
 
 // Read the next PDU from the stream
 func (reader *PDUReader) NextPDU() (*PDU, error) {
-    // discard previous pdu, if caller didn't already do so
-    if reader.lastPDU != nil {
-        _, err := io.Copy(ioutil.Discard, reader.lastPDU.Data)
-        if err != nil {
-            return nil, err
-        }
-    }
+	// discard previous pdu, if caller didn't already do so
+	if reader.lastPDU != nil {
+		_, err := io.Copy(ioutil.Discard, reader.lastPDU.Data)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-    // TODO: detect eof and return nil?
-    header := make([]byte, 6)
-    headerlen, err := io.ReadFull(reader.data, header)
-    if headerlen == 0 {
-        return nil, nil
-    }
+	header := make([]byte, 6)
+	len, err := io.ReadFull(reader.data, header)
+	if len == 0 {
+		return nil, nil
+	}
 
-    if err != nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
-    reader.lastPDU = &PDU{
-        Type: header[0],
-        Length: binary.BigEndian.Uint32(header[2:6]),
-    }
+	reader.lastPDU = &PDU{
+		Type:   PDUType(header[0]),
+		Length: binary.BigEndian.Uint32(header[2:6]),
+	}
 
-    // TODO: sanity check the length?
-    reader.lastPDU.Data = io.LimitReader(reader.data, int64(reader.lastPDU.Length))
+	// TODO: sanity check the length?
+	reader.lastPDU.Data = io.LimitReader(reader.data, int64(reader.lastPDU.Length))
 
-    return reader.lastPDU, nil
+	return reader.lastPDU, nil
 }
 
-// TODO: describe Item
-type Item struct {
-    Type uint8
-    Length uint16
-    Data io.Reader
+type PDUWriter struct {
+	out    io.Writer
+	header [6]byte
 }
 
-type ItemReader struct {
-    data io.Reader
-    lastItem *Item
+func NewPDUWriter(out io.Writer) PDUWriter {
+	return PDUWriter{
+		out: out,
+	}
 }
 
-func NewItemReader(data io.Reader) ItemReader {
-    return ItemReader{data: data}
+func (w *PDUWriter) Write(pdu PDU) (err error) {
+	w.header[0] = uint8(pdu.Type)
+	w.header[1] = 0
+	binary.BigEndian.PutUint32(w.header[2:6], pdu.Length)
+
+	_, err = w.out.Write(w.header[:])
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(w.out, pdu.Data)
+
+	return err
 }
-
-func (reader *ItemReader) NextItem() (*Item, error) {
-    if reader.lastItem != nil {
-        _, err := io.Copy(ioutil.Discard, reader.lastItem.Data)
-        if err != nil {
-            return nil, err
-        }
-    }
-
-    header := make([]byte, 4)
-    headerlen, err := io.ReadFull(reader.data, header)
-    if headerlen == 0 {
-        return nil, nil
-    }
-
-    if err != nil {
-        return nil, err
-    }
-
-    reader.lastItem = &Item{
-        Type: header[0],
-        Length: binary.BigEndian.Uint16(header[2:4]),
-    }
-
-    // TODO: sanity check the length?
-    reader.lastItem.Data = io.LimitReader(reader.data, int64(reader.lastItem.Length))
-
-    return reader.lastItem, nil
-}
-
