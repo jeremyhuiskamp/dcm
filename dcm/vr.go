@@ -1,6 +1,6 @@
 package dcm
 
-// TODO: consider representing this as an interface instead
+// TODO: consider representing this as an interface instead?
 type VR struct {
     // The two-character name of the VR
     Name    string
@@ -10,6 +10,10 @@ type VR struct {
 
     // Whether the VR requires 4 bytes to encode its length
     Long    bool
+}
+
+func (vr VR) String() string {
+	return vr.Name
 }
 
 var vrmap = make(map[string]VR)
@@ -46,6 +50,7 @@ var (
     LO = vr("LO", text, short)
     LT = vr("LT", text, short)
     OB = vr("OB",  bin,  long)
+    OD = vr("OD",  bin,  long)
     OF = vr("OF",  bin,  long)
     OW = vr("OW",  bin,  long)
     PN = vr("PN", text, short)
@@ -55,23 +60,32 @@ var (
     SS = vr("SS",  bin, short)
     ST = vr("ST", text, short)
     TM = vr("TM", text, short)
+    UC = vr("UC", text,  long)
     UI = vr("UI",  bin, short)
     UL = vr("UL",  bin, short)
     UN = vr("UN",  bin,  long)
+    UR = vr("UR", text,  long)
     US = vr("US",  bin, short)
     UT = vr("UT", text,  long)
     //?? = vr("??",  bin,  long)
 )
 
-func GetVR(name string) *VR {
-    if vr, ok := vrmap[name]; ok {
-        return &vr
-    }
+func GetVRByName(name string) *VR {
+	if vr, ok := vrmap[name]; ok {
+		return &vr
+	}
 
-    return &UN
+	return &UN
 }
 
-func TagHasVR(group, tag uint16) bool {
-    return !(group == 0xFFFE && (tag == 0xE000 || tag == 0xE00D || tag == 0xE0DD))
-}
+func VREq(vr1, vr2 *VR) bool {
+	if vr1 == nil && vr2 == nil {
+		return true
+	}
 
+	if vr1 == nil || vr2 == nil {
+		return false
+	}
+
+	return vr1.Name == vr2.Name
+}

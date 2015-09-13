@@ -17,6 +17,7 @@ const (
 )
 
 type PixelStorage int
+//go:generate stringer -type PixelStorage
 const (
     Encapsulated PixelStorage = iota
     Native
