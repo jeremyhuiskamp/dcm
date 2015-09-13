@@ -21,16 +21,14 @@ type Element interface {
 }
 
 type Object struct {
-	// We probably don't want to expose this in the api, might want to switch
-	// to an underlying structure that is more efficient for in-order access.
-	Elements map[Tag]Element
+	elements map[Tag]Element
 }
 
 func (o Object) String() string {
 	var buf bytes.Buffer
 
 	o.ForEach(func(tag Tag, e Element) bool {
-		buf.WriteString(o.Elements[tag].String())
+		buf.WriteString(o.elements[tag].String())
 		buf.WriteString("\n")
 		return true
 	})
@@ -40,21 +38,33 @@ func (o Object) String() string {
 
 // Iterate over the elements in the object.
 func (o Object) ForEach(f func(Tag, Element) bool) {
-	keys := make(tagSlice, 0, len(o.Elements))
-	for key := range o.Elements {
+	keys := make(tagSlice, 0, len(o.elements))
+	for key := range o.elements {
 		keys = append(keys, key)
 	}
 	sort.Sort(keys)
 
 	for _, tag := range keys {
-		if !f(tag, o.Elements[tag]) {
+		if !f(tag, o.elements[tag]) {
 			break
 		}
 	}
 }
 
 func (o Object) Put(e Element) {
-	o.Elements[e.GetTag()] = e
+	o.elements[e.GetTag()] = e
+}
+
+func (o Object) Get(tag Tag) *Element {
+	if e, ok := o.elements[tag]; ok {
+		return &e
+	}
+
+	return nil
+}
+
+func NewObject() Object {
+	return Object{make(map[Tag]Element)}
 }
 
 type SimpleElement struct {
@@ -72,7 +82,7 @@ func (se SimpleElement) GetTag() Tag {
 }
 
 func (se SimpleElement) String() string {
-	return fmt.Sprintf("%s %s", se.Tag, se.VR /*, se.Tag.desc*/)
+	return fmt.Sprintf("%s %s", se.Tag, se.VR)
 }
 
 type SequenceElement struct {
@@ -85,7 +95,7 @@ func (se SequenceElement) GetTag() Tag {
 }
 
 func (se SequenceElement) String() string {
-	return fmt.Sprintf("%s SQ", se.Tag /*, se.Tag.desc*/)
+	return fmt.Sprintf("%s SQ", se.Tag)
 }
 
 type EncapsulatedElement struct {

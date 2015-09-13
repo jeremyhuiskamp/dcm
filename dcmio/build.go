@@ -7,7 +7,7 @@ import (
 )
 
 func Build(parser Parser) (obj dcm.Object, err error) {
-	obj.Elements = make(map[dcm.Tag]dcm.Element)
+	obj = dcm.NewObject()
 
 	for {
 		tag, err := parser.NextTag()
@@ -40,7 +40,7 @@ func Build(parser Parser) (obj dcm.Object, err error) {
 				Tag: tag.Tag,
 			}
 
-			obj.Elements[tag.Tag] = sq
+			obj.Put(sq)
 
 			// TODO iterate through items
 		} else {
@@ -57,7 +57,7 @@ func Build(parser Parser) (obj dcm.Object, err error) {
 				Data: data,
 			}
 
-			obj.Elements[tag.Tag] = el
+			obj.Put(el)
 		}
 	}
 }

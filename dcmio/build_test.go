@@ -36,12 +36,12 @@ func TestParseCEchoReqCmd(t *testing.T) {
 // TODO these should be defined in dcm package!
 
 func getString(tag dcm.Tag, obj dcm.Object) string {
-	el := obj.Elements[tag]
+	el := obj.Get(tag)
 	if el == nil {
 		return ""
 	}
 
-	if se, ok := el.(dcm.SimpleElement); ok {
+	if se, ok := (*el).(dcm.SimpleElement); ok {
 		return strings.TrimRight(string(se.Data), "\x00")
 	}
 
@@ -49,12 +49,12 @@ func getString(tag dcm.Tag, obj dcm.Object) string {
 }
 
 func getInt(tag dcm.Tag, obj dcm.Object, ts dcm.TransferSyntax) int {
-	el := obj.Elements[tag]
+	el := obj.Get(tag)
 	if el == nil {
 		return -1
 	}
 
-	if se, ok := el.(dcm.SimpleElement); ok {
+	if se, ok := (*el).(dcm.SimpleElement); ok {
 		switch se.VR.Name {
 		case dcm.US.Name:
 			return int(ts.ByteOrder().Uint16(se.Data))

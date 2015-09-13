@@ -7,9 +7,7 @@ import (
 
 func TestElementOrder(t *testing.T) {
 	RegisterTestingT(t)
-	o := Object{
-		Elements: make(map[Tag]Element),
-	}
+	o := NewObject()
 
 	o.Put(SimpleElement{
 		Tag:  PatientID,
