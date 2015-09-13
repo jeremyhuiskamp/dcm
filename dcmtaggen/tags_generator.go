@@ -265,7 +265,7 @@ func writeTags(elements elements) {
 	forEach(elements, func (element Element) {
 		// TODO: add comments with other attributes
 		if element.GetKeyword() != "" {
-			fmt.Fprintf(tags_go, "    %-" + maxLenStr + "s = Tag(0x%08X)\n",
+			fmt.Fprintf(tags_go, "\t%-" + maxLenStr + "s = Tag(0x%08X)\n",
 				element.GetKeyword(), *element.GetTagLowValue())
 		}
 	})

@@ -1,18 +1,18 @@
 package main
 
 import (
-    "bytes"
-    "encoding/binary"
-    "flag"
-    "fmt"
-    "github.com/kamper/dcm/dcmnet"
-    "io"
-    "net"
-    "os"
+	"bytes"
+	"encoding/binary"
+	"flag"
+	"fmt"
+	"github.com/kamper/dcm/dcmnet"
+	"io"
+	"net"
+	"os"
 )
 
 const (
-    logDebug = true
+	logDebug = true
 )
 
 // Fprintf to stderr, putting our program name on the front.
@@ -27,73 +27,73 @@ func warnln(elems ...interface{}) {
 }
 
 func debug(format string, elems ...interface{}) {
-    if logDebug {
-        fmt.Fprintf(os.Stderr, format + "\n", elems...)
-    }
+	if logDebug {
+		fmt.Fprintf(os.Stderr, format + "\n", elems...)
+	}
 }
 
 func writePDU(dst io.Writer, pduType uint16, src bytes.Buffer) {
-    binary.Write(dst, binary.LittleEndian, pduType)
-    binary.Write(dst, binary.BigEndian, uint32(src.Len()))
-    dst.Write(src.Bytes())
+	binary.Write(dst, binary.LittleEndian, pduType)
+	binary.Write(dst, binary.BigEndian, uint32(src.Len()))
+	dst.Write(src.Bytes())
 }
 
 func readPDU(src io.Reader) (pduType uint16, pdu io.Reader) {
-    binary.Read(src, binary.LittleEndian, &pduType)
-    debug("Read pdu type %X", pduType)
-    var pduLength uint32
-    binary.Read(src, binary.BigEndian, &pduLength)
-    debug("Read pdu length %X", pduLength)
-    return pduType, io.LimitReader(src, int64(pduLength))
+	binary.Read(src, binary.LittleEndian, &pduType)
+	debug("Read pdu type %X", pduType)
+	var pduLength uint32
+	binary.Read(src, binary.BigEndian, &pduLength)
+	debug("Read pdu length %X", pduLength)
+	return pduType, io.LimitReader(src, int64(pduLength))
 }
 
 func main() {
-    var callingAE, calledAE, addr string
+	var callingAE, calledAE, addr string
 
-    flag.StringVar(&callingAE, "calling", "CECHO", "Calling AE Title")
-    flag.StringVar(&calledAE, "called", "CECHO", "Called AE Title")
-    flag.StringVar(&addr, "d", "", "host:port of SCP")
+	flag.StringVar(&callingAE, "calling", "CECHO", "Calling AE Title")
+	flag.StringVar(&calledAE, "called", "CECHO", "Called AE Title")
+	flag.StringVar(&addr, "d", "", "host:port of SCP")
 
-    flag.Parse()
+	flag.Parse()
 
-    fmt.Printf("Calling AE: %s\n", callingAE)
-    fmt.Printf("Called AE: %s\n", calledAE)
-    fmt.Printf("Address: %s\n", addr)
+	fmt.Printf("Calling AE: %s\n", callingAE)
+	fmt.Printf("Called AE: %s\n", calledAE)
+	fmt.Printf("Address: %s\n", addr)
 
-    conn, err := net.Dial("tcp", addr)
-    if err != nil {
-        warnf("%s\n", err)
-        return
-    }
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		warnf("%s\n", err)
+		return
+	}
 
-    rq := dcmnet.AssociateRQAC{
-        ProtocolVersion: 1,
-        CalledAE: calledAE,
-        CallingAE: callingAE,
-        PresentationContexts: []dcmnet.PresentationContext{
-            dcmnet.PresentationContext{
-                Id: 1,
-                AbstractSyntax: "1.2.840.10008.1.1",
-                TransferSyntaxes: []string{"1.2.840.10008.1.2"},
-            },
-        },
-    }
-    fmt.Printf("Sending %v\n", rq)
+	rq := dcmnet.AssociateRQAC{
+		ProtocolVersion: 1,
+		CalledAE: calledAE,
+		CallingAE: callingAE,
+		PresentationContexts: []dcmnet.PresentationContext{
+			dcmnet.PresentationContext{
+				Id: 1,
+				AbstractSyntax: "1.2.840.10008.1.1",
+				TransferSyntaxes: []string{"1.2.840.10008.1.2"},
+			},
+		},
+	}
+	fmt.Printf("Sending %v\n", rq)
 
-    var buf bytes.Buffer
-    rq.Write(&buf)
-    writePDU(conn, 1, buf)
+	var buf bytes.Buffer
+	rq.Write(&buf)
+	writePDU(conn, 1, buf)
 
-    _, pduSrc := readPDU(conn)
+	_, pduSrc := readPDU(conn)
 
-    ac := dcmnet.AssociateRQAC{}
-    ac.Read(pduSrc)
-    fmt.Printf("Read %v\n", ac)
+	ac := dcmnet.AssociateRQAC{}
+	ac.Read(pduSrc)
+	fmt.Printf("Read %v\n", ac)
 
-    var release bytes.Buffer
-    binary.Write(&release, binary.LittleEndian, uint16(0))
-    binary.Write(&release, binary.LittleEndian, uint16(0))
-    writePDU(conn, uint16(dcmnet.PDUReleaseRQ), release)
+	var release bytes.Buffer
+	binary.Write(&release, binary.LittleEndian, uint16(0))
+	binary.Write(&release, binary.LittleEndian, uint16(0))
+	writePDU(conn, uint16(dcmnet.PDUReleaseRQ), release)
 
-    conn.Close()
+	conn.Close()
 }

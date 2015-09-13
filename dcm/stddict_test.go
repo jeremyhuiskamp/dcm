@@ -5,8 +5,8 @@
 package dcm
 
 import (
-    . "github.com/onsi/gomega"
-    "testing"
+	. "github.com/onsi/gomega"
+	"testing"
 )
 
 func TestStandardVR(t *testing.T) {

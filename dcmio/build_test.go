@@ -2,7 +2,7 @@ package dcmio
 
 import (
 	"os"
-    . "github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	"testing"
 	"github.com/kamper/dcm/dcm"
 	"strings"
