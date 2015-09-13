@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/kamper/dcm/dcm"
-	"github.com/kamper/dcm/dcmio"
 	"flag"
 	"fmt"
+	"github.com/kamper/dcm/dcm"
+	"github.com/kamper/dcm/dcmio"
 	"log"
 	"os"
 )

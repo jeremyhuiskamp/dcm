@@ -5,18 +5,21 @@ import (
 )
 
 type Explicitness bool
+
 const (
 	Explicit Explicitness = true
 	Implicit Explicitness = false
 )
 
 type Deflation bool
+
 const (
 	Deflated Deflation = true
 	Inflated Deflation = false
 )
 
 type PixelStorage int
+
 //go:generate stringer -type PixelStorage
 const (
 	Encapsulated PixelStorage = iota
@@ -24,10 +27,10 @@ const (
 )
 
 type TransferSyntax interface {
-	UID()          string
-	ByteOrder()    binary.ByteOrder
-	VR()           Explicitness
-	Deflation()    Deflation
+	UID() string
+	ByteOrder() binary.ByteOrder
+	VR() Explicitness
+	Deflation() Deflation
 	PixelStorage() PixelStorage
 }
 
@@ -69,36 +72,36 @@ func regts(ts TransferSyntax) TransferSyntax {
 // Known transfer syntaxes:
 var (
 	ExplicitVRLittleEndian = regts(&transferSyntax{
-			"1.2.840.10008.1.2.1",
-			binary.LittleEndian,
-			Explicit,
-			Inflated,
-			Native,
-		})
+		"1.2.840.10008.1.2.1",
+		binary.LittleEndian,
+		Explicit,
+		Inflated,
+		Native,
+	})
 
 	ImplicitVRLittleEndian = regts(&transferSyntax{
-			"1.2.840.10008.1.2",
-			binary.LittleEndian,
-			Implicit,
-			Inflated,
-			Native,
-		})
+		"1.2.840.10008.1.2",
+		binary.LittleEndian,
+		Implicit,
+		Inflated,
+		Native,
+	})
 
 	ExplicitVRBigEndian = regts(&transferSyntax{
-			"1.2.840.10008.1.2.2",
-			binary.BigEndian,
-			Explicit,
-			Inflated,
-			Native,
-		})
+		"1.2.840.10008.1.2.2",
+		binary.BigEndian,
+		Explicit,
+		Inflated,
+		Native,
+	})
 
 	ImplicitVRBigEndian = regts(&transferSyntax{
-			"1.2.840.113619.5.2",
-			binary.BigEndian,
-			Implicit,
-			Inflated,
-			Native,
-		})
+		"1.2.840.113619.5.2",
+		binary.BigEndian,
+		Implicit,
+		Inflated,
+		Native,
+	})
 
 	// TODO: add other known syntaxes
 )
@@ -113,10 +116,10 @@ func GetTransferSyntax(uid string) TransferSyntax {
 	// I believe these are the defaults for all non-raw
 	// image types...
 	return &transferSyntax{
-			uid,
-			binary.LittleEndian,
-			Explicit,
-			Inflated,
-			Encapsulated,
-		}
+		uid,
+		binary.LittleEndian,
+		Explicit,
+		Inflated,
+		Encapsulated,
+	}
 }

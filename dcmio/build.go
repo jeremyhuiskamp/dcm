@@ -1,8 +1,8 @@
 package dcmio
 
 import (
-	"io/ioutil"
 	"github.com/kamper/dcm/dcm"
+	"io/ioutil"
 	"log"
 )
 
@@ -51,7 +51,7 @@ func Build(parser Parser) (obj dcm.Object, err error) {
 
 			log.Printf("Read %d bytes value\n", len(data))
 
-			el := dcm.SimpleElement {
+			el := dcm.SimpleElement{
 				Tag:  tag.Tag,
 				VR:   *vr,
 				Data: data,

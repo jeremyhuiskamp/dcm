@@ -38,19 +38,19 @@ func (t *PDVTest) TestLast(c *C) {
 
 func (t *PDVTest) TestLastDoesntAffectCommand(c *C) {
 	pdv := PDV{}
-	
+
 	c.Assert(pdv.GetType(), Equals, Data)
 	pdv.SetLast(!pdv.IsLast())
 	c.Assert(pdv.GetType(), Equals, Data)
 	pdv.SetLast(!pdv.IsLast())
 	c.Assert(pdv.GetType(), Equals, Data)
-	
+
 	pdv.SetType(Command)
 	pdv.SetLast(!pdv.IsLast())
 	c.Assert(pdv.GetType(), Equals, Command)
 	pdv.SetLast(!pdv.IsLast())
 	c.Assert(pdv.GetType(), Equals, Command)
-	
+
 	pdv.SetType(Data)
 	pdv.SetLast(!pdv.IsLast())
 	c.Assert(pdv.GetType(), Equals, Data)
@@ -60,19 +60,19 @@ func (t *PDVTest) TestLastDoesntAffectCommand(c *C) {
 
 func (t *PDVTest) TestCommandDoesntAffectLast(c *C) {
 	pdv := PDV{}
-	
+
 	c.Assert(pdv.IsLast(), Equals, false)
 	pdv.SetType(Command)
 	c.Assert(pdv.IsLast(), Equals, false)
 	pdv.SetType(Data)
 	c.Assert(pdv.IsLast(), Equals, false)
-	
+
 	pdv.SetLast(true)
 	pdv.SetType(Command)
 	c.Assert(pdv.IsLast(), Equals, true)
 	pdv.SetType(Data)
 	c.Assert(pdv.IsLast(), Equals, true)
-	
+
 	pdv.SetLast(false)
 	pdv.SetType(Command)
 	c.Assert(pdv.IsLast(), Equals, false)

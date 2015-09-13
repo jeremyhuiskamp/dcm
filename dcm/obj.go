@@ -10,6 +10,7 @@ import (
 
 // gah, should try to outsource this sorting somewhere else
 type tagSlice []Tag
+
 func (p tagSlice) Len() int           { return len(p) }
 func (p tagSlice) Less(i, j int) bool { return p[i] < p[j] }
 func (p tagSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
@@ -37,7 +38,7 @@ func (o Object) String() string {
 	return buf.String()
 }
 
-// Iterate over the elements in the object. 
+// Iterate over the elements in the object.
 func (o Object) ForEach(f func(Tag, Element) bool) {
 	keys := make(tagSlice, 0, len(o.Elements))
 	for key := range o.Elements {
@@ -57,11 +58,11 @@ func (o Object) Put(e Element) {
 }
 
 type SimpleElement struct {
-	Tag  Tag
+	Tag Tag
 
 	// Tag also has a VR, but that's the standard value, and we could have a
 	// different one in a real object
-	VR   VR
+	VR VR
 
 	Data []byte
 }
@@ -71,11 +72,11 @@ func (se SimpleElement) GetTag() Tag {
 }
 
 func (se SimpleElement) String() string {
-	return fmt.Sprintf("%s %s", se.Tag, se.VR/*, se.Tag.desc*/)
+	return fmt.Sprintf("%s %s", se.Tag, se.VR /*, se.Tag.desc*/)
 }
 
 type SequenceElement struct {
-	Tag Tag
+	Tag     Tag
 	Objects []Object
 }
 
@@ -84,11 +85,11 @@ func (se SequenceElement) GetTag() Tag {
 }
 
 func (se SequenceElement) String() string {
-	return fmt.Sprintf("%s SQ", se.Tag/*, se.Tag.desc*/)
+	return fmt.Sprintf("%s SQ", se.Tag /*, se.Tag.desc*/)
 }
 
 type EncapsulatedElement struct {
-	Tag Tag
-	VR VR
+	Tag  Tag
+	VR   VR
 	Data [][]byte
 }

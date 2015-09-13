@@ -28,7 +28,7 @@ func warnln(elems ...interface{}) {
 
 func debug(format string, elems ...interface{}) {
 	if logDebug {
-		fmt.Fprintf(os.Stderr, format + "\n", elems...)
+		fmt.Fprintf(os.Stderr, format+"\n", elems...)
 	}
 }
 
@@ -68,12 +68,12 @@ func main() {
 
 	rq := dcmnet.AssociateRQAC{
 		ProtocolVersion: 1,
-		CalledAE: calledAE,
-		CallingAE: callingAE,
+		CalledAE:        calledAE,
+		CallingAE:       callingAE,
 		PresentationContexts: []dcmnet.PresentationContext{
 			dcmnet.PresentationContext{
-				Id: 1,
-				AbstractSyntax: "1.2.840.10008.1.1",
+				Id:               1,
+				AbstractSyntax:   "1.2.840.10008.1.1",
 				TransferSyntaxes: []string{"1.2.840.10008.1.2"},
 			},
 		},

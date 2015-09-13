@@ -7,10 +7,10 @@ package dcmio
 // -- might want to check if underlying stream supports seek, for speed
 
 import (
-	bin "encoding/binary"
 	"bytes"
-	"github.com/kamper/dcm/dcm"
+	bin "encoding/binary"
 	"errors"
+	"github.com/kamper/dcm/dcm"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -20,7 +20,7 @@ import (
 // number of bytes that have been read
 type positionReader struct {
 	position uint64
-	in io.Reader
+	in       io.Reader
 }
 
 func (pr *positionReader) Read(p []byte) (n int, err error) {
@@ -33,9 +33,9 @@ func (pr *positionReader) Read(p []byte) (n int, err error) {
 // TODO: This would probably better be called an Element...
 type Tag struct {
 	// offset of beginning of header from start of stream
-	Offset      uint64
-	Tag         dcm.Tag
-	VR          *dcm.VR
+	Offset uint64
+	Tag    dcm.Tag
+	VR     *dcm.VR
 	// offset of beginning of value from start of stream
 	ValueOffset uint64
 	ValueLength int32
@@ -55,10 +55,10 @@ type Parser interface {
 // SimpleParser is a Parser implementation that simply reads
 // from the stream, always assuming a given transfer syntax
 type SimpleParser struct {
-	basein      *positionReader
-	in          io.Reader
+	basein *positionReader
+	in     io.Reader
 
-	ts          dcm.TransferSyntax
+	ts dcm.TransferSyntax
 
 	// track the previous tag we returned, so that we can
 	// make sure it's stream is drained
@@ -83,10 +83,10 @@ func (p *SimpleParser) readTag() (tag *Tag, err error) {
 		return nil, err
 	}
 
-	order   := p.ts.ByteOrder()
+	order := p.ts.ByteOrder()
 	tag.Tag = dcm.NewTag(
-				order.Uint16(bytes[ :2]),
-				order.Uint16(bytes[2: ]))
+		order.Uint16(bytes[:2]),
+		order.Uint16(bytes[2:]))
 
 	return tag, nil
 }
@@ -162,6 +162,7 @@ func (p *SimpleParser) NextTag() (tag *Tag, err error) {
 }
 
 type part10state int
+
 const (
 	beforeGroup2 part10state = iota
 	inGroup2
@@ -172,17 +173,17 @@ const (
 // SimpleParser instances to read the parts of the file that have
 // different transfer syntaxes
 type Part10Parser struct {
-	basein      *positionReader
-	parser      SimpleParser
-	state       part10state
-	ts          dcm.TransferSyntax
+	basein *positionReader
+	parser SimpleParser
+	state  part10state
+	ts     dcm.TransferSyntax
 }
 
 func (p *Part10Parser) GetPosition() uint64 {
 	return p.basein.position
 }
 
-func (p* Part10Parser) NextTag() (tag *Tag, err error) {
+func (p *Part10Parser) NextTag() (tag *Tag, err error) {
 	switch p.state {
 	case beforeGroup2:
 		tag, err = p.parser.NextTag()
@@ -298,14 +299,14 @@ func NewFileParser(in io.Reader) (Parser, error) {
 	defTS := dcm.ExplicitVRLittleEndian
 
 	p := &Part10Parser{
-		basein:     &basein,
-		parser:     SimpleParser{
-						basein: &basein,
-						in:     &basein,
-						ts:     defTS,
-					},
-		ts:         defTS,
-		state:      beforeGroup2,
+		basein: &basein,
+		parser: SimpleParser{
+			basein: &basein,
+			in:     &basein,
+			ts:     defTS,
+		},
+		ts:    defTS,
+		state: beforeGroup2,
 	}
 
 	return p, nil

@@ -55,7 +55,7 @@ func NewDataDictionary(privateCreatorUID string, specs map[Tag]ElementSpec) Data
 		specsByName:       specsByName,
 		privateCreatorUID: privateCreatorUID,
 	}
-	
+
 	if privateCreatorUID != "" {
 		privateDicts[privateCreatorUID] = dd
 	}

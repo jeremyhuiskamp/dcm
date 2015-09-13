@@ -8,7 +8,7 @@ import (
 func TestParseTag(t *testing.T) {
 	RegisterTestingT(t)
 
-	tag := Element{ Tag: "(0123,4567)", }
+	tag := Element{Tag: "(0123,4567)"}
 	Expect(*tag.GetTagLowValue()).To(Equal(uint32(0x01234567)))
 	Expect(*tag.GetTagHighValue()).To(Equal(uint32(0x01234567)))
 
@@ -24,7 +24,7 @@ func TestParseTag(t *testing.T) {
 func TestParseKeyword(t *testing.T) {
 	RegisterTestingT(t)
 
-	tag := Element{ Keyword: "asdf", }
+	tag := Element{Keyword: "asdf"}
 	Expect(tag.GetKeyword()).To(Equal("asdf"))
 
 	tag.Keyword = " a s d f "
@@ -39,10 +39,10 @@ func TestParseVR(t *testing.T) {
 
 	type input [][]string
 	data := input{
-		[]string { "US",       "US" },
-		[]string { "US or OB", "US" },
-		[]string { "OB or US", "OB" },
-		[]string { "",         "UN" },
+		[]string{"US", "US"},
+		[]string{"US or OB", "US"},
+		[]string{"OB or US", "OB"},
+		[]string{"", "UN"},
 	}
 
 	el := Element{Tag: "(0010,0020)"}

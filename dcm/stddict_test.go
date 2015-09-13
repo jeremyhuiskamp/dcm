@@ -24,8 +24,8 @@ func TestPrivateVR(t *testing.T) {
 	tag := Tag(0x00010001)
 
 	NewDataDictionary("private", map[Tag]ElementSpec{
-			tag: ElementSpec{tag: tag, vr: UC,},
-		})
+		tag: ElementSpec{tag: tag, vr: UC},
+	})
 
 	Expect(VRForTag("private", tag)).To(Equal(UC))
 }

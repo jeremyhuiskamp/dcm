@@ -1,12 +1,12 @@
 package dcmio
 
 import (
-	"os"
-	. "github.com/onsi/gomega"
-	"testing"
 	"github.com/kamper/dcm/dcm"
-	"strings"
+	. "github.com/onsi/gomega"
 	"log"
+	"os"
+	"strings"
+	"testing"
 )
 
 func TestParseCEchoReqCmd(t *testing.T) {
@@ -55,7 +55,7 @@ func getInt(tag dcm.Tag, obj dcm.Object, ts dcm.TransferSyntax) int {
 	}
 
 	if se, ok := el.(dcm.SimpleElement); ok {
-		switch (se.VR.Name) {
+		switch se.VR.Name {
 		case dcm.US.Name:
 			return int(ts.ByteOrder().Uint16(se.Data))
 		}
