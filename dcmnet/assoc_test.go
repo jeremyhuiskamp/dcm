@@ -2,73 +2,70 @@ package dcmnet
 
 import (
 	"bytes"
-	. "gopkg.in/check.v1"
+	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
 )
 
-func TestAssoc(t *testing.T) {
-	Suite(&AssocSuite{})
-	TestingT(t)
-}
+func TestParseAssocRQCEcho(t *testing.T) {
+	RegisterTestingT(t)
 
-type AssocSuite struct{}
+	assocrq := readAssocRQAC("testdata/assocrq_cecho.bin", PDUAssociateRQ)
 
-func (s *AssocSuite) TestParseAssocRQCEcho(c *C) {
-	assocrq := readAssocRQAC(c, "testdata/assocrq_cecho.bin", PDUAssociateRQ)
+	Expect(assocrq.ProtocolVersion).To(Equal(int16(1)))
+	Expect(assocrq.CalledAE).To(Equal("RIALTO"))
+	Expect(assocrq.CallingAE).To(Equal("DCMECHO"))
+	Expect(assocrq.ApplicationContext).To(Equal("1.2.840.10008.3.1.1.1"))
 
-	c.Assert(assocrq.ProtocolVersion, Equals, int16(1))
-	c.Assert(assocrq.CalledAE, Equals, "RIALTO")
-	c.Assert(assocrq.CallingAE, Equals, "DCMECHO")
-	c.Assert(assocrq.ApplicationContext, Equals, "1.2.840.10008.3.1.1.1")
-
-	c.Assert(assocrq.PresentationContexts, HasLen, 1)
+	Expect(assocrq.PresentationContexts).To(HaveLen(1))
 	pc1 := assocrq.PresentationContexts[0]
-	c.Assert(pc1.Id, Equals, uint8(1))
-	c.Assert(pc1.AbstractSyntax, Equals, "1.2.840.10008.1.1")
-	c.Assert(pc1.Result, Equals, uint32(0)) // not sure if this matters in a req
-	c.Assert(pc1.TransferSyntaxes, HasLen, 1)
-	c.Assert(pc1.TransferSyntaxes[0], Equals, "1.2.840.10008.1.2")
+	Expect(pc1.Id).To(Equal(uint8(1)))
+	Expect(pc1.AbstractSyntax).To(Equal("1.2.840.10008.1.1"))
+	Expect(pc1.Result).To(Equal(uint32(0))) // not sure if this matters in a req
+	Expect(pc1.TransferSyntaxes).To(HaveLen(1))
+	Expect(pc1.TransferSyntaxes[0]).To(Equal("1.2.840.10008.1.2"))
 
-	c.Assert(assocrq.MaxPDULength, Equals, uint32(16384))
-	c.Assert(assocrq.ImplementationClassUID, Equals, "1.2.40.0.13.1.1")
+	Expect(assocrq.MaxPDULength).To(Equal(uint32(16384)))
+	Expect(assocrq.ImplementationClassUID).To(Equal("1.2.40.0.13.1.1"))
 
 	// hmm, not a good test, since these are the defaults:
-	c.Assert(assocrq.MaxOperationsInvoked, Equals, uint16(0))
-	c.Assert(assocrq.MaxOperationsPerformed, Equals, uint16(0))
+	Expect(assocrq.MaxOperationsInvoked).To(Equal(uint16(0)))
+	Expect(assocrq.MaxOperationsPerformed).To(Equal(uint16(0)))
 
-	c.Assert(assocrq.ImplementationVersion, Equals, "dcm4che-2.0")
+	Expect(assocrq.ImplementationVersion).To(Equal("dcm4che-2.0"))
 }
 
-func (s *AssocSuite) TestParseAssocACCEcho(c *C) {
-	assocac := readAssocRQAC(c, "testdata/assocac_cecho.bin", PDUAssociateAC)
+func TestParseAssocACCEcho(t *testing.T) {
+	RegisterTestingT(t)
 
-	c.Assert(assocac.ProtocolVersion, Equals, int16(1))
-	c.Assert(assocac.CalledAE, Equals, "RIALTO")
-	c.Assert(assocac.CallingAE, Equals, "DCMECHO")
-	c.Assert(assocac.ApplicationContext, Equals, "1.2.840.10008.3.1.1.1")
+	assocac := readAssocRQAC("testdata/assocac_cecho.bin", PDUAssociateAC)
 
-	c.Assert(assocac.PresentationContexts, HasLen, 1)
+	Expect(assocac.ProtocolVersion).To(Equal(int16(1)))
+	Expect(assocac.CalledAE).To(Equal("RIALTO"))
+	Expect(assocac.CallingAE).To(Equal("DCMECHO"))
+	Expect(assocac.ApplicationContext).To(Equal("1.2.840.10008.3.1.1.1"))
+
+	Expect(assocac.PresentationContexts).To(HaveLen(1))
 	pc1 := assocac.PresentationContexts[0]
-	c.Assert(pc1.Id, Equals, uint8(1))
-	c.Assert(pc1.AbstractSyntax, HasLen, 0)
-	c.Assert(pc1.Result, Equals, uint32(0))
-	c.Assert(pc1.TransferSyntaxes, HasLen, 1)
-	c.Assert(pc1.TransferSyntaxes[0], Equals, "1.2.840.10008.1.2")
+	Expect(pc1.Id).To(Equal(uint8(1)))
+	Expect(pc1.AbstractSyntax).To(HaveLen(0))
+	Expect(pc1.Result).To(Equal(uint32(0)))
+	Expect(pc1.TransferSyntaxes).To(HaveLen(1))
+	Expect(pc1.TransferSyntaxes[0]).To(Equal("1.2.840.10008.1.2"))
 
-	c.Assert(assocac.MaxPDULength, Equals, uint32(16384))
-	c.Assert(assocac.ImplementationClassUID, Equals, "1.2.40.0.13.1.1")
+	Expect(assocac.MaxPDULength).To(Equal(uint32(16384)))
+	Expect(assocac.ImplementationClassUID).To(Equal("1.2.40.0.13.1.1"))
 
 	// hmm, not a good test, since these are the defaults:
-	c.Assert(assocac.MaxOperationsInvoked, Equals, uint16(0))
-	c.Assert(assocac.MaxOperationsPerformed, Equals, uint16(0))
+	Expect(assocac.MaxOperationsInvoked).To(Equal(uint16(0)))
+	Expect(assocac.MaxOperationsPerformed).To(Equal(uint16(0)))
 
-	c.Assert(assocac.ImplementationVersion, Equals, "dcm4che-2.0")
+	Expect(assocac.ImplementationVersion).To(Equal("dcm4che-2.0"))
 }
 
-func readAssocRQAC(c *C, file string, pduType PDUType) AssociateRQAC {
+func readAssocRQAC(file string, pduType PDUType) AssociateRQAC {
 	b, err := ioutil.ReadFile(file)
-	c.Assert(err, IsNil)
+	Expect(err).To(BeNil())
 
 	var buf bytes.Buffer
 	buf.Write(b)
@@ -76,15 +73,15 @@ func readAssocRQAC(c *C, file string, pduType PDUType) AssociateRQAC {
 
 	pduReader := NewPDUReader(&buf)
 	pdu, err := pduReader.NextPDU()
-	c.Assert(err, IsNil)
-	c.Assert(pdu, NotNil)
+	Expect(err).To(BeNil())
+	Expect(pdu).ToNot(BeNil())
 
-	c.Assert(pdu.Type, Equals, pduType)
+	Expect(pdu.Type).To(Equal(pduType))
 	var rqac AssociateRQAC
 	rqac.Read(pdu.Data)
 
 	// ensure that we stopped at the right spot:
-	c.Assert(buf.String(), Equals, "don't read me bro")
+	Expect(buf.String()).To(Equal("don't read me bro"))
 
 	return rqac
 }
