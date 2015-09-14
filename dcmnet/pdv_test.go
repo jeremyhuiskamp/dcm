@@ -1,81 +1,81 @@
 package dcmnet
 
 import (
-	. "gopkg.in/check.v1"
+	. "github.com/onsi/gomega"
 	"testing"
 )
 
-func TestPDV(t *testing.T) {
-	Suite(&PDVTest{})
-	TestingT(t)
-}
+func TestCommandVsData(t *testing.T) {
+	RegisterTestingT(t)
 
-type PDVTest struct{}
-
-func (t *PDVTest) TestCommandVsData(c *C) {
 	pdv := PDV{}
 
-	c.Assert(pdv.GetType(), Equals, Data) // Data is default
+	Expect(pdv.GetType()).To(Equal(Data)) // Data is default
 
 	pdv.SetType(Command)
-	c.Assert(pdv.GetType(), Equals, Command)
+	Expect(pdv.GetType()).To(Equal(Command))
 
 	pdv.SetType(Data)
-	c.Assert(pdv.GetType(), Equals, Data)
+	Expect(pdv.GetType()).To(Equal(Data))
 }
 
-func (t *PDVTest) TestLast(c *C) {
+func TestLast(t *testing.T) {
+	RegisterTestingT(t)
+
 	pdv := PDV{}
 
-	c.Assert(pdv.IsLast(), Equals, false) // Not Last is default
+	Expect(pdv.IsLast()).To(BeFalse()) // Not Last is default
 
 	pdv.SetLast(true)
-	c.Assert(pdv.IsLast(), Equals, true)
+	Expect(pdv.IsLast()).To(BeTrue())
 
 	pdv.SetLast(false)
-	c.Assert(pdv.IsLast(), Equals, false)
 }
 
-func (t *PDVTest) TestLastDoesntAffectCommand(c *C) {
+func TestLastDoesntAffectCommand(t *testing.T) {
+	RegisterTestingT(t)
+
 	pdv := PDV{}
 
-	c.Assert(pdv.GetType(), Equals, Data)
+	Expect(pdv.GetType()).To(Equal(Data))
 	pdv.SetLast(!pdv.IsLast())
-	c.Assert(pdv.GetType(), Equals, Data)
+	Expect(pdv.GetType()).To(Equal(Data))
 	pdv.SetLast(!pdv.IsLast())
-	c.Assert(pdv.GetType(), Equals, Data)
+	Expect(pdv.GetType()).To(Equal(Data))
 
 	pdv.SetType(Command)
 	pdv.SetLast(!pdv.IsLast())
-	c.Assert(pdv.GetType(), Equals, Command)
+	Expect(pdv.GetType()).To(Equal(Command))
 	pdv.SetLast(!pdv.IsLast())
-	c.Assert(pdv.GetType(), Equals, Command)
+	Expect(pdv.GetType()).To(Equal(Command))
 
 	pdv.SetType(Data)
 	pdv.SetLast(!pdv.IsLast())
-	c.Assert(pdv.GetType(), Equals, Data)
+	Expect(pdv.GetType()).To(Equal(Data))
 	pdv.SetLast(!pdv.IsLast())
-	c.Assert(pdv.GetType(), Equals, Data)
+	Expect(pdv.GetType()).To(Equal(Data))
 }
 
-func (t *PDVTest) TestCommandDoesntAffectLast(c *C) {
+func TestCommandDoesntAffectLast(t *testing.T) {
+	RegisterTestingT(t)
+
 	pdv := PDV{}
 
-	c.Assert(pdv.IsLast(), Equals, false)
+	Expect(pdv.IsLast()).To(BeFalse())
 	pdv.SetType(Command)
-	c.Assert(pdv.IsLast(), Equals, false)
+	Expect(pdv.IsLast()).To(BeFalse())
 	pdv.SetType(Data)
-	c.Assert(pdv.IsLast(), Equals, false)
+	Expect(pdv.IsLast()).To(BeFalse())
 
 	pdv.SetLast(true)
 	pdv.SetType(Command)
-	c.Assert(pdv.IsLast(), Equals, true)
+	Expect(pdv.IsLast()).To(BeTrue())
 	pdv.SetType(Data)
-	c.Assert(pdv.IsLast(), Equals, true)
+	Expect(pdv.IsLast()).To(BeTrue())
 
 	pdv.SetLast(false)
 	pdv.SetType(Command)
-	c.Assert(pdv.IsLast(), Equals, false)
+	Expect(pdv.IsLast()).To(BeFalse())
 	pdv.SetType(Data)
-	c.Assert(pdv.IsLast(), Equals, false)
+	Expect(pdv.IsLast()).To(BeFalse())
 }
