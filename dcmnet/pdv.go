@@ -5,11 +5,14 @@ package dcmnet
 
 import (
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
 )
 
 type PDVType uint8
 
+//go:generate stringer -type PDVType
 const (
 	Data    PDVType = 0x00
 	Command PDVType = 0x01
@@ -28,6 +31,8 @@ type PDV struct {
 	// Last/Not Last.  It should be preferred to access these through their
 	// respective accessor methods.
 	Flags uint8
+
+	Length uint32
 
 	Data io.Reader
 }
@@ -53,21 +58,113 @@ func (pdv *PDV) SetLast(last bool) {
 }
 
 func NextPDV(pdata io.Reader) (*PDV, error) {
-	var pdv PDV
-
 	var header [6]byte
 	_, err := pdata.Read(header[:])
 	if err != nil {
 		return nil, err
 	}
 
-	var length uint32
-	binary.BigEndian.Uint32(header[:4])
-	pdv.Context = header[4]
-	pdv.Flags = header[5]
+	pdv := PDV{
+		Length:  binary.BigEndian.Uint32(header[:4]),
+		Context: header[4],
+		Flags:   header[5],
+	}
 
 	// length includes the Context and Flags
-	pdv.Data = io.LimitReader(pdata, int64(length-2))
+	pdv.Data = io.LimitReader(pdata, int64(pdv.Length)-2)
 
 	return &pdv, nil
+}
+
+// PDVReader wraps a PDUReader to act as an io.Reader that reads data spread
+// across multiple PDUs
+type PDVReader struct {
+	pdus PDUReader
+	pdu  PDU
+	pdv  PDV
+}
+
+func ReadPDVs(pdv PDV, pdu PDU, pdus PDUReader) PDVReader {
+	return PDVReader{pdus, pdu, pdv}
+}
+
+func (p *PDVReader) Read(buf []byte) (n int, err error) {
+	for {
+		n, err = p.pdv.Data.Read(buf)
+		if n > 0 {
+			// Got some data from this pdv, return it.
+			// We want to ignore underlying EOF here, in case we need to move
+			// to the next PDV.  We should be able to ignore other errors, as
+			// the underlying stream should return them along with n==0 in the
+			// next call.
+			return n, nil
+		}
+
+		if err != nil && err != io.EOF {
+			// real underlying error
+			return 0, err
+		}
+
+		if err == io.EOF && p.pdv.IsLast() {
+			// end of this pdv and its the last one: normal EOF
+			return 0, io.EOF
+		}
+
+		// move on to the next PDV and then try again
+		err = p.nextPDV()
+		if err != nil {
+			// hmm, an EOF here would be unexpected, should make more serious
+			return 0, err
+		}
+	}
+}
+
+func (p *PDVReader) nextPDV() error {
+	for {
+		nextpdv, err := NextPDV(p.pdu.Data)
+
+		if err == io.EOF {
+			err = p.nextPDU()
+			if err != nil {
+				return err
+			}
+
+			// go around again
+
+		} else if err != nil {
+			return err
+		} else {
+			if p.pdv.Context != nextpdv.Context {
+				return errors.New(
+					fmt.Sprintf("Unexpected PDV context id: %d (expected: %d)",
+						nextpdv.Context, p.pdv.Context))
+
+			} else if p.pdv.GetType() != nextpdv.GetType() {
+				return errors.New(
+					fmt.Sprintf("Unexpected PDV type: %s (expected: %s)",
+						nextpdv.GetType(), p.pdv.GetType()))
+			}
+
+			p.pdv = *nextpdv
+			return nil
+		}
+	}
+}
+
+func (p *PDVReader) nextPDU() error {
+	nextpdu, err := p.pdus.NextPDU()
+	if err != nil {
+		return err
+	}
+
+	if nextpdu.Type != PDUPresentationData {
+		// TODO: preserve the pdu, eg, in case it's an Abort
+		return errors.New(
+			fmt.Sprintf("Unepxected PDU type: %s (expected: %s)",
+				nextpdu.Type, PDUPresentationData))
+	}
+
+	p.pdu = *nextpdu
+
+	return nil
 }
