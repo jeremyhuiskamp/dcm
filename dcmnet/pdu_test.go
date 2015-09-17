@@ -17,25 +17,25 @@ func TestPDU(t *testing.T) {
 type PDUSuite struct{}
 
 func (s *PDUSuite) TestReadOnePDU(c *C) {
-	reader := pduReader(pdu(0x01, "hai!"))
+	reader := pduDecoder(pdu(0x01, "hai!"))
 	assertNextPDU(c, reader, 0x01, "hai!")
 }
 
 func (s *PDUSuite) TestReadTwoPDUs(c *C) {
-	reader := pduReader(pdu(0x01, "one"), pdu(0x02, "two"))
+	reader := pduDecoder(pdu(0x01, "one"), pdu(0x02, "two"))
 	assertNextPDU(c, reader, 0x01, "one")
 	assertNextPDU(c, reader, 0x02, "two")
 }
 
 func (s *PDUSuite) TestNilForEOF(c *C) {
-	reader := pduReader()
+	reader := pduDecoder()
 	pdu, err := reader.NextPDU()
 	c.Assert(pdu, IsNil)
 	c.Assert(err, IsNil)
 }
 
 func (s *PDUSuite) TestDrainFirstPDUWhenAskedForSecond(c *C) {
-	reader := pduReader(pdu(0x01, "one"), pdu(0x02, "two"))
+	reader := pduDecoder(pdu(0x01, "one"), pdu(0x02, "two"))
 	// not reading value...
 	reader.NextPDU()
 	assertNextPDU(c, reader, 0x02, "two")
@@ -83,11 +83,11 @@ func concat(things ...[]byte) []byte {
 	return alldata
 }
 
-func pduReader(pdus ...[]byte) PDUReader {
-	return NewPDUReader(bytes.NewBuffer(concat(pdus...)))
+func pduDecoder(pdus ...[]byte) PDUDecoder {
+	return NewPDUDecoder(bytes.NewBuffer(concat(pdus...)))
 }
 
-func assertNextPDU(c *C, reader PDUReader, pduType PDUType, value string) {
+func assertNextPDU(c *C, reader PDUDecoder, pduType PDUType, value string) {
 	pdu, err := reader.NextPDU()
 
 	c.Assert(err, IsNil)

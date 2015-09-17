@@ -26,18 +26,18 @@ type PDU struct {
 	Data   io.Reader
 }
 
-// PDUReader parses a stream for PDUs
-type PDUReader struct {
+// PDUDecoder parses a stream for PDUs
+type PDUDecoder struct {
 	data    io.Reader
 	lastPDU *PDU
 }
 
-func NewPDUReader(data io.Reader) PDUReader {
-	return PDUReader{data, nil}
+func NewPDUDecoder(data io.Reader) PDUDecoder {
+	return PDUDecoder{data, nil}
 }
 
 // Read the next PDU from the stream
-func (reader *PDUReader) NextPDU() (*PDU, error) {
+func (reader *PDUDecoder) NextPDU() (*PDU, error) {
 	// discard previous pdu, if caller didn't already do so
 	if reader.lastPDU != nil {
 		_, err := io.Copy(ioutil.Discard, reader.lastPDU.Data)

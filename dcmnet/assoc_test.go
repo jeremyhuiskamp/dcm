@@ -71,8 +71,8 @@ func readAssocRQAC(file string, pduType PDUType) AssociateRQAC {
 	buf.Write(b)
 	buf.WriteString("don't read me bro")
 
-	pduReader := NewPDUReader(&buf)
-	pdu, err := pduReader.NextPDU()
+	pduDecoder := NewPDUDecoder(&buf)
+	pdu, err := pduDecoder.NextPDU()
 	Expect(err).To(BeNil())
 	Expect(pdu).ToNot(BeNil())
 

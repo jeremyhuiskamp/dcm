@@ -94,7 +94,7 @@ func TestPDVReaderSinglePDUCommand(t *testing.T) {
 	buf.Write(f)
 	Expect(buf.Len()).To(Equal(80))
 
-	pdur := NewPDUReader(&buf)
+	pdur := NewPDUDecoder(&buf)
 
 	pdu, err := pdur.NextPDU()
 	Expect(err).To(BeNil())
@@ -125,7 +125,7 @@ func TestPDVReaderCommandAndTwoPDVs(t *testing.T) {
 		pduX(PDUPresentationData,
 			pdv(1, Data, true, []byte("data2"))))
 
-	pdur := NewPDUReader(&data)
+	pdur := NewPDUDecoder(&data)
 
 	pdu, err := pdur.NextPDU()
 	Expect(err).To(BeNil())

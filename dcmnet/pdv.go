@@ -76,15 +76,15 @@ func NextPDV(pdata io.Reader) (*PDV, error) {
 	return &pdv, nil
 }
 
-// PDVReader wraps a PDUReader to act as an io.Reader that reads data spread
+// PDVReader wraps a PDUDecoder to act as an io.Reader that reads data spread
 // across multiple PDUs
 type PDVReader struct {
-	pdus PDUReader
+	pdus PDUDecoder
 	pdu  PDU
 	pdv  PDV
 }
 
-func ReadPDVs(pdv PDV, pdu PDU, pdus PDUReader) PDVReader {
+func ReadPDVs(pdv PDV, pdu PDU, pdus PDUDecoder) PDVReader {
 	return PDVReader{pdus, pdu, pdv}
 }
 
