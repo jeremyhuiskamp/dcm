@@ -2,9 +2,7 @@ package dcmnet
 
 import (
 	"bytes"
-	"encoding/binary"
 	. "github.com/onsi/gomega"
-	"io"
 	"io/ioutil"
 	"testing"
 )
@@ -118,12 +116,12 @@ func TestPDVReaderSinglePDUCommand(t *testing.T) {
 func TestPDVReaderCommandAndTwoPDVs(t *testing.T) {
 	RegisterTestingT(t)
 
-	data := combine(
-		pduX(PDUPresentationData,
-			pdv(1, Command, true, []byte("command")),
-			pdv(1, Data, false, []byte("data1\n"))),
-		pduX(PDUPresentationData,
-			pdv(1, Data, true, []byte("data2"))))
+	data := bufcat(
+		bufpdu(PDUPresentationData,
+			bufpdv(1, Command, true, "command"),
+			bufpdv(1, Data, false, "data1\n")),
+		bufpdu(PDUPresentationData,
+			bufpdv(1, Data, true, "data2")))
 
 	pdur := NewPDUDecoder(&data)
 
@@ -147,43 +145,4 @@ func TestPDVReaderCommandAndTwoPDVs(t *testing.T) {
 
 	pdvr := ReadPDVs(*pdv, *pdu, pdur)
 	Expect(toString(&pdvr)).To(Equal("data1\ndata2"))
-}
-
-// TODO: merge these with the versions in pdu_test.go
-
-func combine(bufs ...bytes.Buffer) (buf bytes.Buffer) {
-	for _, bufx := range bufs {
-		buf.ReadFrom(&bufx)
-	}
-	return buf
-}
-
-func pduX(typ PDUType, pdvs ...bytes.Buffer) (buf bytes.Buffer) {
-	payload := combine(pdvs...)
-	header := make([]byte, 6)
-	header[0] = byte(typ)
-	binary.BigEndian.PutUint32(header[2:6], uint32(payload.Len()))
-	buf.Write(header)
-	buf.ReadFrom(&payload)
-
-	return buf
-}
-
-func pdv(context uint8, typ PDVType, last bool, data []byte) (buf bytes.Buffer) {
-	header := make([]byte, 6)
-	binary.BigEndian.PutUint32(header[0:4], uint32(len(data)+2))
-	header[4] = context
-	var pdv PDV
-	pdv.SetType(typ)
-	pdv.SetLast(last)
-	header[5] = pdv.Flags
-	buf.Write(header)
-	buf.Write(data)
-
-	return buf
-}
-
-func toString(data io.Reader) string {
-	bytes, _ := ioutil.ReadAll(data)
-	return string(bytes)
 }

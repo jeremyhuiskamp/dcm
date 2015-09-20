@@ -15,7 +15,7 @@ func init() {
 func TestPDUReaderSinglePData(t *testing.T) {
 	RegisterTestingT(t)
 
-	data := pduX(PDUPresentationData, *bytes.NewBuffer([]byte("data")))
+	data := bufpdu(PDUPresentationData, "data")
 	data, err := readPDUs(data)
 
 	Expect(err).To(BeNil())
@@ -25,9 +25,9 @@ func TestPDUReaderSinglePData(t *testing.T) {
 func TestPDUReaderTwoPData(t *testing.T) {
 	RegisterTestingT(t)
 
-	data := combine(
-		pduX(PDUPresentationData, *bytes.NewBuffer([]byte("data1"))),
-		pduX(PDUPresentationData, *bytes.NewBuffer([]byte("data2"))))
+	data := bufcat(
+		bufpdu(PDUPresentationData, "data1"),
+		bufpdu(PDUPresentationData, "data2"))
 
 	data, err := readPDUs(data)
 	Expect(err).To(BeNil())
@@ -37,9 +37,9 @@ func TestPDUReaderTwoPData(t *testing.T) {
 func TestPDUReaderOnePDataThenAbort(t *testing.T) {
 	RegisterTestingT(t)
 
-	data := combine(
-		pduX(PDUPresentationData, *bytes.NewBuffer([]byte("data"))),
-		pduX(PDUAbort, *bytes.NewBuffer([]byte("notdata"))))
+	data := bufcat(
+		bufpdu(PDUPresentationData, "data"),
+		bufpdu(PDUAbort, "notdata"))
 
 	data, err := readPDUs(data)
 	Expect(err).To(BeNil())

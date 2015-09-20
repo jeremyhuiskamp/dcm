@@ -37,17 +37,17 @@ func NewPDUDecoder(data io.Reader) PDUDecoder {
 }
 
 // Read the next PDU from the stream
-func (reader *PDUDecoder) NextPDU() (*PDU, error) {
+func (d *PDUDecoder) NextPDU() (*PDU, error) {
 	// discard previous pdu, if caller didn't already do so
-	if reader.lastPDU != nil {
-		_, err := io.Copy(ioutil.Discard, reader.lastPDU.Data)
+	if d.lastPDU != nil {
+		_, err := io.Copy(ioutil.Discard, d.lastPDU.Data)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	header := make([]byte, 6)
-	len, err := io.ReadFull(reader.data, header)
+	len, err := io.ReadFull(d.data, header)
 	if len == 0 {
 		return nil, nil
 	}
@@ -56,15 +56,15 @@ func (reader *PDUDecoder) NextPDU() (*PDU, error) {
 		return nil, err
 	}
 
-	reader.lastPDU = &PDU{
+	d.lastPDU = &PDU{
 		Type:   PDUType(header[0]),
 		Length: binary.BigEndian.Uint32(header[2:6]),
 	}
 
 	// TODO: sanity check the length?
-	reader.lastPDU.Data = io.LimitReader(reader.data, int64(reader.lastPDU.Length))
+	d.lastPDU.Data = io.LimitReader(d.data, int64(d.lastPDU.Length))
 
-	return reader.lastPDU, nil
+	return d.lastPDU, nil
 }
 
 type PDUWriter struct {

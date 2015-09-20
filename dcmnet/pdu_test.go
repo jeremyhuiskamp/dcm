@@ -17,28 +17,28 @@ func TestPDU(t *testing.T) {
 type PDUSuite struct{}
 
 func (s *PDUSuite) TestReadOnePDU(c *C) {
-	reader := pduDecoder(pdu(0x01, "hai!"))
-	assertNextPDU(c, reader, 0x01, "hai!")
+	decoder := pduDecoder(bufpdu(0x01, "hai!"))
+	assertNextPDU(c, decoder, 0x01, "hai!")
 }
 
 func (s *PDUSuite) TestReadTwoPDUs(c *C) {
-	reader := pduDecoder(pdu(0x01, "one"), pdu(0x02, "two"))
-	assertNextPDU(c, reader, 0x01, "one")
-	assertNextPDU(c, reader, 0x02, "two")
+	decoder := pduDecoder(bufpdu(0x01, "one"), bufpdu(0x02, "two"))
+	assertNextPDU(c, decoder, 0x01, "one")
+	assertNextPDU(c, decoder, 0x02, "two")
 }
 
 func (s *PDUSuite) TestNilForEOF(c *C) {
-	reader := pduDecoder()
-	pdu, err := reader.NextPDU()
+	decoder := pduDecoder()
+	pdu, err := decoder.NextPDU()
 	c.Assert(pdu, IsNil)
 	c.Assert(err, IsNil)
 }
 
 func (s *PDUSuite) TestDrainFirstPDUWhenAskedForSecond(c *C) {
-	reader := pduDecoder(pdu(0x01, "one"), pdu(0x02, "two"))
+	decoder := pduDecoder(bufpdu(0x01, "one"), bufpdu(0x02, "two"))
 	// not reading value...
-	reader.NextPDU()
-	assertNextPDU(c, reader, 0x02, "two")
+	decoder.NextPDU()
+	assertNextPDU(c, decoder, 0x02, "two")
 }
 
 type ItemSuite struct{}
@@ -68,27 +68,13 @@ func (s *ItemSuite) TestDrainFirstItemWhenAskedForSecond(c *C) {
 	assertNextItem(c, reader, 0x02, "two")
 }
 
-func pdu(pdutype uint8, data string) []byte {
-	pdu := make([]byte, 6)
-	pdu[0] = pdutype
-	binary.BigEndian.PutUint32(pdu[2:6], uint32(len(data)))
-	return append(pdu, []byte(data)...)
+func pduDecoder(pdus ...interface{}) PDUDecoder {
+	b := bufcat(pdus...)
+	return NewPDUDecoder(&b)
 }
 
-func concat(things ...[]byte) []byte {
-	alldata := make([]byte, 0)
-	for i := range things {
-		alldata = append(alldata, things[i]...)
-	}
-	return alldata
-}
-
-func pduDecoder(pdus ...[]byte) PDUDecoder {
-	return NewPDUDecoder(bytes.NewBuffer(concat(pdus...)))
-}
-
-func assertNextPDU(c *C, reader PDUDecoder, pduType PDUType, value string) {
-	pdu, err := reader.NextPDU()
+func assertNextPDU(c *C, decoder PDUDecoder, pduType PDUType, value string) {
+	pdu, err := decoder.NextPDU()
 
 	c.Assert(err, IsNil)
 	c.Assert(pdu, NotNil)
@@ -101,15 +87,18 @@ func assertNextPDU(c *C, reader PDUDecoder, pduType PDUType, value string) {
 	c.Assert(string(actualvalue), Equals, value)
 }
 
-func item(itemtype uint8, data string) []byte {
+func item(itemtype uint8, data string) (buf bytes.Buffer) {
 	item := make([]byte, 4)
 	item[0] = itemtype
 	binary.BigEndian.PutUint16(item[2:4], uint16(len(data)))
-	return append(item, []byte(data)...)
+	buf.Write(item)
+	buf.Write([]byte(data))
+	return buf
 }
 
-func itemReader(items ...[]byte) ItemReader {
-	return NewItemReader(bytes.NewBuffer(concat(items...)))
+func itemReader(items ...interface{}) ItemReader {
+	b := bufcat(items...)
+	return NewItemReader(&b)
 }
 
 func assertNextItem(c *C, reader ItemReader, itemType uint8, value string) {
