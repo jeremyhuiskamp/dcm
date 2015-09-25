@@ -6,11 +6,12 @@ package dcmnet
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"io/ioutil"
 )
 
-// TODO: utils for inserting errors at arbitrary points in the data
+// TODO: utils for inserting errors at arbitrary points in the data.
 // perhaps we want io.Reader to be our basic unit of data, with io.MultiReader
 // to concatenate
 
@@ -66,7 +67,7 @@ func toBuffer(thing interface{}) bytes.Buffer {
 	if reader, ok := thing.(io.Reader); ok {
 		t, err := ioutil.ReadAll(reader)
 		if err != nil {
-			panic("Unable to read thing")
+			panic(fmt.Sprintf("Unable to read %+T: %s", thing, err))
 		}
 
 		thing = t
@@ -76,7 +77,7 @@ func toBuffer(thing interface{}) bytes.Buffer {
 		return *bytes.NewBuffer(b)
 	}
 
-	panic("Could not convert thing to bytes.Buffer")
+	panic(fmt.Sprintf("Could not convert thing %T to bytes.Buffer", thing))
 }
 
 func toBytes(thing interface{}) []byte {

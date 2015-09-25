@@ -41,6 +41,7 @@ func (s *PDUSuite) TestDrainFirstPDUWhenAskedForSecond(c *C) {
 	assertNextPDU(c, decoder, 0x02, "two")
 }
 
+// TODO: needs to move out to item_test.go
 type ItemSuite struct{}
 
 func (s *ItemSuite) TestReadOneItem(c *C) {

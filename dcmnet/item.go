@@ -3,7 +3,6 @@ package dcmnet
 import (
 	"encoding/binary"
 	"io"
-	"io/ioutil"
 )
 
 type ItemType uint8
@@ -30,42 +29,29 @@ type Item struct {
 	Data   io.Reader
 }
 
+// TODO: rename to ItemDecoder
+
 type ItemReader struct {
-	data     io.Reader
-	lastItem *Item
+	data StreamDecoder
 }
 
 func NewItemReader(data io.Reader) ItemReader {
-	return ItemReader{data: data}
+	return ItemReader{StreamDecoder{data, nil}}
 }
 
-func (reader *ItemReader) NextItem() (*Item, error) {
-	if reader.lastItem != nil {
-		_, err := io.Copy(ioutil.Discard, reader.lastItem.Data)
-		if err != nil {
-			return nil, err
-		}
-	}
+func (reader *ItemReader) NextItem() (item *Item, err error) {
+	item = &Item{}
+	item.Data, err = reader.data.NextChunk(4, func(header []byte) int64 {
+		item.Type = ItemType(header[0])
+		item.Length = binary.BigEndian.Uint16(header[2:4])
+		return int64(item.Length)
+	})
 
-	header := make([]byte, 4)
-	headerlen, err := io.ReadFull(reader.data, header)
-	if headerlen == 0 {
-		return nil, nil
-	}
-
-	if err != nil {
+	if err != nil || item.Data == nil {
 		return nil, err
 	}
 
-	reader.lastItem = &Item{
-		Type:   ItemType(header[0]),
-		Length: binary.BigEndian.Uint16(header[2:4]),
-	}
-
-	// TODO: sanity check the length?
-	reader.lastItem.Data = io.LimitReader(reader.data, int64(reader.lastItem.Length))
-
-	return reader.lastItem, nil
+	return item, nil
 }
 
 // Poor man's iterator over ItemReader.NextItem()
@@ -83,8 +69,6 @@ func EachItem(src io.Reader, f func(*Item) error) error {
 		if err != nil {
 			return err
 		}
-
-		io.Copy(ioutil.Discard, item.Data)
 	}
 
 	return nil

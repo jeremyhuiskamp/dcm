@@ -22,7 +22,7 @@ func (pdr *PDataReader) Read(buf []byte) (int, error) {
 	// first time, or after encountering an error (in which case we should
 	// probably just hit the same error again):
 	if pdr.pdu == nil {
-		log.Debug("No current PDU, checking for next one.")
+		pdataLog.Debug("No current PDU, checking for next one.")
 		err := pdr.nextPDU()
 		if err != nil {
 			pdataLog.WithError(err).Debug("No next PDU")
@@ -35,7 +35,7 @@ func (pdr *PDataReader) Read(buf []byte) (int, error) {
 	}
 
 	for {
-		if pdr.pdu.Type != PDUPresentationData {
+		if pdr.pdu == nil || pdr.pdu.Type != PDUPresentationData {
 			return 0, io.EOF
 		}
 
@@ -58,10 +58,6 @@ func (pdr *PDataReader) Read(buf []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-
-		if pdr.pdu == nil {
-			return 0, io.EOF
-		}
 	}
 }
 
@@ -72,10 +68,24 @@ func (pdr *PDataReader) nextPDU() error {
 		// don't preserve current pdu, if any:
 		pdr.pdu = nil
 
+		pdataLog.WithError(err).Warn("Unable to read next PDU")
+
 		return err
 	}
 
 	pdr.pdu = nextpdu
+	if nextpdu != nil {
+		pdataLog.WithField("pdutype", nextpdu.Type).Debug("Read next PDU")
+	} else {
+		pdataLog.Debug("No more PDUs")
+	}
 
 	return nil
+}
+
+// GetFinalPDU returns the first PDU that was not presentation data.
+// Not valid until Read() has returned EOF.  May be nil if the underlying
+// stream did not contain another PDU.
+func (pdr PDataReader) GetFinalPDU() *PDU {
+	return pdr.pdu
 }

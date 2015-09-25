@@ -1,9 +1,7 @@
 package dcmnet
 
 import (
-	"bytes"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
 	"testing"
 )
 
@@ -82,67 +80,67 @@ func TestCommandDoesntAffectLast(t *testing.T) {
 	Expect(pdv.IsLast()).To(BeFalse())
 }
 
-func TestPDVReaderSinglePDUCommand(t *testing.T) {
+func TestReadOnePDV(t *testing.T) {
 	RegisterTestingT(t)
 
-	f, err := ioutil.ReadFile("testdata/cecho_req_pdu.bin")
-	Expect(err).To(BeNil())
-
-	var buf bytes.Buffer
-	buf.Write(f)
-	Expect(buf.Len()).To(Equal(80))
-
-	pdur := NewPDUDecoder(&buf)
-
-	pdu, err := pdur.NextPDU()
-	Expect(err).To(BeNil())
-	Expect(pdu.Type).To(Equal(PDUPresentationData))
-	Expect(pdu.Length).To(Equal(uint32(74)))
-
-	pdv, err := NextPDV(pdu.Data)
-	Expect(err).To(BeNil())
-	Expect(pdv.Context).To(Equal(uint8(1)))
-	Expect(pdv.GetType()).To(Equal(Command))
-	Expect(pdv.IsLast()).To(BeTrue())
-	Expect(pdv.Length).To(Equal(uint32(70)))
-
-	pdvr := ReadPDVs(*pdv, *pdu, pdur)
-
-	pdvbytes, err := ioutil.ReadAll(&pdvr)
-	Expect(err).To(BeNil())
-	Expect(pdvbytes).To(HaveLen(68))
+	decoder := pdvDecoder(bufpdv(1, Command, true, "command"))
+	expectNextPDV(decoder, 1, Command, true, "command")
+	expectNoMorePDVs(decoder)
 }
 
-func TestPDVReaderCommandAndTwoPDVs(t *testing.T) {
+func TestReadMultiplePDVs(t *testing.T) {
 	RegisterTestingT(t)
 
-	data := bufcat(
-		bufpdu(PDUPresentationData,
-			bufpdv(1, Command, true, "command"),
-			bufpdv(1, Data, false, "data1\n")),
-		bufpdu(PDUPresentationData,
-			bufpdv(1, Data, true, "data2")))
+	decoder := pdvDecoder(
+		bufpdv(1, Command, true, "command"),
+		bufpdv(2, Data, false, "data1"),
+		bufpdv(3, Data, true, "data2"))
 
-	pdur := NewPDUDecoder(&data)
+	expectNextPDV(decoder, 1, Command, true, "command")
+	expectNextPDV(decoder, 2, Data, false, "data1")
+	expectNextPDV(decoder, 3, Data, true, "data2")
+	expectNoMorePDVs(decoder)
+}
 
-	pdu, err := pdur.NextPDU()
+func TestNoPDVs(t *testing.T) {
+	RegisterTestingT(t)
+
+	decoder := pdvDecoder()
+	expectNoMorePDVs(decoder)
+}
+
+func TestDrainFirstPDVWhenAskedForSecond(t *testing.T) {
+	RegisterTestingT(t)
+
+	decoder := pdvDecoder(
+		bufpdv(1, Command, true, "command"),
+		bufpdv(2, Data, false, "data"))
+	// not reading value...
+	decoder.NextPDV()
+	expectNextPDV(decoder, 2, Data, false, "data")
+	expectNoMorePDVs(decoder)
+}
+
+func expectNextPDV(decoder PDVDecoder, context uint8, tipe PDVType, last bool,
+	content string) {
+
+	pdv, err := decoder.NextPDV()
 	Expect(err).To(BeNil())
-	Expect(pdu.Type).To(Equal(PDUPresentationData))
+	Expect(pdv).ToNot(BeNil())
 
-	pdv, err := NextPDV(pdu.Data)
+	Expect(pdv.Context).To(Equal(context))
+	Expect(pdv.GetType()).To(Equal(tipe))
+	Expect(pdv.IsLast()).To(Equal(last))
+	Expect(toString(pdv.Data)).To(Equal(content))
+}
+
+func expectNoMorePDVs(decoder PDVDecoder) {
+	pdv, err := decoder.NextPDV()
 	Expect(err).To(BeNil())
-	Expect(pdv.Context).To(Equal(uint8(1)))
-	Expect(pdv.GetType()).To(Equal(Command))
-	Expect(pdv.IsLast()).To(BeTrue())
-	Expect(toString(pdv.Data)).To(Equal("command"))
+	Expect(pdv).To(BeNil())
+}
 
-	pdv, err = NextPDV(pdu.Data)
-	Expect(err).To(BeNil())
-	Expect(pdu.Type).To(Equal(PDUPresentationData))
-	Expect(pdv.Context).To(Equal(uint8(1)))
-	Expect(pdv.GetType()).To(Equal(Data))
-	Expect(pdv.IsLast()).To(BeFalse())
-
-	pdvr := ReadPDVs(*pdv, *pdu, pdur)
-	Expect(toString(&pdvr)).To(Equal("data1\ndata2"))
+func pdvDecoder(pdvs ...interface{}) PDVDecoder {
+	b := bufcat(pdvs...)
+	return NewPDVDecoder(&b)
 }
