@@ -3,41 +3,42 @@ package dcmnet
 import (
 	"bytes"
 	"encoding/binary"
-	. "gopkg.in/check.v1"
+	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
 )
 
-func TestItem(t *testing.T) {
-	Suite(&ItemSuite{})
-	TestingT(t)
-}
+func TestReadOneItem(t *testing.T) {
+	RegisterTestingT(t)
 
-type ItemSuite struct{}
-
-func (s *ItemSuite) TestReadOneItem(c *C) {
 	reader := itemReader(item(0x01, "hai!"))
-	assertNextItem(c, reader, 0x01, "hai!")
+	expectNextItem(reader, 0x01, "hai!")
 }
 
-func (s *ItemSuite) TestReadTwoItems(c *C) {
+func TestReadTwoItems(t *testing.T) {
+	RegisterTestingT(t)
+
 	reader := itemReader(item(0x01, "one"), item(0x02, "two"))
-	assertNextItem(c, reader, 0x01, "one")
-	assertNextItem(c, reader, 0x02, "two")
+	expectNextItem(reader, 0x01, "one")
+	expectNextItem(reader, 0x02, "two")
 }
 
-func (s *ItemSuite) TestNilForEOF(c *C) {
+func TestItemNilForEOF(t *testing.T) {
+	RegisterTestingT(t)
+
 	reader := itemReader()
 	item, err := reader.NextItem()
-	c.Assert(item, IsNil)
-	c.Assert(err, IsNil)
+	Expect(item).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 }
 
-func (s *ItemSuite) TestDrainFirstItemWhenAskedForSecond(c *C) {
+func TestDrainFirstItemWhenAskedForSecond(t *testing.T) {
+	RegisterTestingT(t)
+
 	reader := itemReader(item(0x01, "one"), item(0x02, "two"))
 	// not reading value...
 	reader.NextItem()
-	assertNextItem(c, reader, 0x02, "two")
+	expectNextItem(reader, 0x02, "two")
 }
 
 func item(itemtype uint8, data string) (buf bytes.Buffer) {
@@ -54,16 +55,16 @@ func itemReader(items ...interface{}) ItemReader {
 	return NewItemReader(&b)
 }
 
-func assertNextItem(c *C, reader ItemReader, itemType uint8, value string) {
+func expectNextItem(reader ItemReader, itemType ItemType, value string) {
 	item, err := reader.NextItem()
 
-	c.Assert(err, IsNil)
-	c.Assert(item, NotNil)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(item).ToNot(BeNil())
 
-	c.Assert(item.Type, Equals, ItemType(itemType))
-	c.Assert(item.Length, Equals, uint16(len(value)))
+	Expect(item.Type).To(Equal(itemType))
+	Expect(item.Length).To(Equal(uint16(len(value))))
 
-	actualValue, err := ioutil.ReadAll(item.Data)
-	c.Assert(err, IsNil)
-	c.Assert(string(actualValue), Equals, value)
+	actualvalue, err := ioutil.ReadAll(item.Data)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(string(actualvalue)).To(Equal(value))
 }

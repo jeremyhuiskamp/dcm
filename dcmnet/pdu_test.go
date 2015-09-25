@@ -1,41 +1,42 @@
 package dcmnet
 
 import (
-	. "gopkg.in/check.v1"
+	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
 )
 
-func TestPDU(t *testing.T) {
-	Suite(&PDUSuite{})
-	TestingT(t)
-}
+func TestReadOnePDU(t *testing.T) {
+	RegisterTestingT(t)
 
-type PDUSuite struct{}
-
-func (s *PDUSuite) TestReadOnePDU(c *C) {
 	decoder := pduDecoder(bufpdu(0x01, "hai!"))
-	assertNextPDU(c, decoder, 0x01, "hai!")
+	expectNextPDU(decoder, 0x01, "hai!")
 }
 
-func (s *PDUSuite) TestReadTwoPDUs(c *C) {
+func TestReadTwoPDUs(t *testing.T) {
+	RegisterTestingT(t)
+
 	decoder := pduDecoder(bufpdu(0x01, "one"), bufpdu(0x02, "two"))
-	assertNextPDU(c, decoder, 0x01, "one")
-	assertNextPDU(c, decoder, 0x02, "two")
+	expectNextPDU(decoder, 0x01, "one")
+	expectNextPDU(decoder, 0x02, "two")
 }
 
-func (s *PDUSuite) TestNilForEOF(c *C) {
+func TestPDUNilForEOF(t *testing.T) {
+	RegisterTestingT(t)
+
 	decoder := pduDecoder()
 	pdu, err := decoder.NextPDU()
-	c.Assert(pdu, IsNil)
-	c.Assert(err, IsNil)
+	Expect(pdu).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 }
 
-func (s *PDUSuite) TestDrainFirstPDUWhenAskedForSecond(c *C) {
+func TestDrainFirstPDUWhenAskedForSecond(t *testing.T) {
+	RegisterTestingT(t)
+
 	decoder := pduDecoder(bufpdu(0x01, "one"), bufpdu(0x02, "two"))
 	// not reading value...
 	decoder.NextPDU()
-	assertNextPDU(c, decoder, 0x02, "two")
+	expectNextPDU(decoder, 0x02, "two")
 }
 
 func pduDecoder(pdus ...interface{}) PDUDecoder {
@@ -43,16 +44,16 @@ func pduDecoder(pdus ...interface{}) PDUDecoder {
 	return NewPDUDecoder(&b)
 }
 
-func assertNextPDU(c *C, decoder PDUDecoder, pduType PDUType, value string) {
+func expectNextPDU(decoder PDUDecoder, pduType PDUType, value string) {
 	pdu, err := decoder.NextPDU()
 
-	c.Assert(err, IsNil)
-	c.Assert(pdu, NotNil)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(pdu).ToNot(BeNil())
 
-	c.Assert(pdu.Type, Equals, pduType)
-	c.Assert(pdu.Length, Equals, uint32(len(value)))
+	Expect(pdu.Type).To(Equal(pduType))
+	Expect(pdu.Length).To(Equal(uint32(len(value))))
 
 	actualvalue, err := ioutil.ReadAll(pdu.Data)
-	c.Assert(err, IsNil)
-	c.Assert(string(actualvalue), Equals, value)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(string(actualvalue)).To(Equal(value))
 }
