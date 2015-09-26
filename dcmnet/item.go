@@ -2,6 +2,7 @@ package dcmnet
 
 import (
 	"encoding/binary"
+	"github.com/kamper/dcm/stream"
 	"io"
 )
 
@@ -26,7 +27,7 @@ const (
 type Item struct {
 	Type   ItemType
 	Length uint16
-	Data   io.Reader
+	Data   stream.Stream
 }
 
 // TODO: rename to ItemDecoder

@@ -2,6 +2,7 @@ package dcmnet
 
 import (
 	"encoding/binary"
+	"github.com/kamper/dcm/stream"
 	"io"
 )
 
@@ -22,7 +23,7 @@ const (
 type PDU struct {
 	Type   PDUType
 	Length uint32
-	Data   io.Reader
+	Data   stream.Stream
 }
 
 // PDUDecoder parses a stream for PDUs

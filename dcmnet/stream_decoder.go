@@ -1,6 +1,7 @@
 package dcmnet
 
 import (
+	"github.com/kamper/dcm/stream"
 	"io"
 	"io/ioutil"
 )
@@ -16,7 +17,7 @@ type StreamDecoder struct {
 // Should it report returning an error if the header is invalid?
 type ParseHeaderFunc func(header []byte) int64
 
-func (s *StreamDecoder) NextChunk(headerLen int, parse ParseHeaderFunc) (io.Reader, error) {
+func (s *StreamDecoder) NextChunk(headerLen int, parse ParseHeaderFunc) (stream.Stream, error) {
 	if s.lastChunk != nil {
 		// is it feasible to try seeking here?  that may be more efficient.
 		// however, we're likely wrapped in several layers of LimitedReaders,
@@ -44,5 +45,5 @@ func (s *StreamDecoder) NextChunk(headerLen int, parse ParseHeaderFunc) (io.Read
 	// TODO: sanity check the length?
 	s.lastChunk = io.LimitReader(s.stream, dataLen)
 
-	return s.lastChunk, nil
+	return stream.NewReaderStream(s.lastChunk), nil
 }

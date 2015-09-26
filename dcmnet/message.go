@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/kamper/dcm/log"
+	"github.com/kamper/dcm/stream"
 	"io"
 	"io/ioutil"
 )
@@ -14,7 +15,7 @@ var msgLog = log.Category("dcm.msg")
 type Message struct {
 	Context uint8
 	Type    PDVType
-	Data    io.Reader
+	Data    stream.Stream
 }
 
 // MessageDecoder decodes successive messages from an underlying stream of
@@ -47,7 +48,11 @@ func (md *MessageDecoder) NextMessage() (*Message, error) {
 
 	md.msg = &MessageReader{md.pdvs, pdv}
 
-	return &Message{pdv.Context, pdv.GetType(), md.msg}, nil
+	return &Message{
+		pdv.Context,
+		pdv.GetType(),
+		stream.NewReaderStream(md.msg),
+	}, nil
 }
 
 // MessageReader implements io.Reader by combining the data of several PDVs
