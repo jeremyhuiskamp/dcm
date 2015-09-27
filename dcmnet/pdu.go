@@ -2,6 +2,7 @@ package dcmnet
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/kamper/dcm/stream"
 	"io"
 )
@@ -24,6 +25,10 @@ type PDU struct {
 	Type   PDUType
 	Length uint32
 	Data   stream.Stream
+}
+
+func (p PDU) String() string {
+	return fmt.Sprintf("[%s, len=%d]", p.Type, p.Length)
 }
 
 // PDUDecoder parses a stream for PDUs
@@ -52,20 +57,22 @@ func (d *PDUDecoder) NextPDU() (pdu *PDU, err error) {
 	return pdu, err
 }
 
-type PDUWriter struct {
+type PDUEncoder struct {
 	out    io.Writer
 	header [6]byte
 }
 
-func NewPDUWriter(out io.Writer) PDUWriter {
-	return PDUWriter{
-		out: out,
-	}
+func NewPDUEncoder(out io.Writer) PDUEncoder {
+	return PDUEncoder{out: out}
 }
 
-func (w *PDUWriter) Write(pdu PDU) (err error) {
+func (w *PDUEncoder) NextPDU(pdu PDU) (err error) {
 	w.header[0] = uint8(pdu.Type)
 	w.header[1] = 0
+	// here, we could consider ignoring the passed-in length, but instead
+	// writing the data to a buffer and calculating the length?
+	// less efficient, but simpler for higher layers?
+	// length should be capped at something reasonable based on assoc negotiation
 	binary.BigEndian.PutUint32(w.header[2:6], pdu.Length)
 
 	_, err = w.out.Write(w.header[:])
@@ -73,7 +80,9 @@ func (w *PDUWriter) Write(pdu PDU) (err error) {
 		return err
 	}
 
-	_, err = io.Copy(w.out, pdu.Data)
+	// should we validate that the amount of data written matches what we said
+	// the length was?
+	_, err = pdu.Data.WriteTo(w.out)
 
 	return err
 }

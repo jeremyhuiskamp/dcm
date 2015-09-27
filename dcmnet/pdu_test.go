@@ -1,6 +1,7 @@
 package dcmnet
 
 import (
+	"bytes"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
@@ -21,7 +22,7 @@ func TestReadTwoPDUs(t *testing.T) {
 	expectNextPDU(decoder, 0x02, "two")
 }
 
-func TestPDUNilForEOF(t *testing.T) {
+func TestReadPDUNilForEOF(t *testing.T) {
 	RegisterTestingT(t)
 
 	decoder := pduDecoder()
@@ -30,13 +31,70 @@ func TestPDUNilForEOF(t *testing.T) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func TestDrainFirstPDUWhenAskedForSecond(t *testing.T) {
+func TestReadDrainFirstPDUWhenAskedForSecond(t *testing.T) {
 	RegisterTestingT(t)
 
 	decoder := pduDecoder(bufpdu(0x01, "one"), bufpdu(0x02, "two"))
 	// not reading value...
 	decoder.NextPDU()
 	expectNextPDU(decoder, 0x02, "two")
+}
+
+func TestWriteOnePDU(t *testing.T) {
+	RegisterTestingT(t)
+
+	data := new(bytes.Buffer)
+	encoder := NewPDUEncoder(data)
+	encoder.NextPDU(toPDU(PDUPresentationData, "data"))
+
+	typ, content, err := getpdu(data)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(typ).To(Equal(PDUPresentationData))
+	Expect(toString(content)).To(Equal("data"))
+
+	Expect(data.Len()).To(Equal(0))
+}
+
+func TestWriteTwoPDUs(t *testing.T) {
+	RegisterTestingT(t)
+
+	data := new(bytes.Buffer)
+	encoder := NewPDUEncoder(data)
+	encoder.NextPDU(toPDU(PDUPresentationData, "data1"))
+	encoder.NextPDU(toPDU(PDUType(25), "data2"))
+
+	typ, content, err := getpdu(data)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(typ).To(Equal(PDUPresentationData))
+	Expect(toString(content)).To(Equal("data1"))
+
+	typ, content, err = getpdu(data)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(typ).To(Equal(PDUType(25)))
+	Expect(toString(content)).To(Equal("data2"))
+
+	Expect(data.Len()).To(Equal(0))
+}
+
+func TestWriteEmptyPDU(t *testing.T) {
+	RegisterTestingT(t)
+
+	data := new(bytes.Buffer)
+	encoder := NewPDUEncoder(data)
+	encoder.NextPDU(toPDU(PDUPresentationData, ""))
+	encoder.NextPDU(toPDU(PDUType(25), ""))
+
+	typ, content, err := getpdu(data)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(typ).To(Equal(PDUPresentationData))
+	Expect(toString(content)).To(Equal(""))
+
+	typ, content, err = getpdu(data)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(typ).To(Equal(PDUType(25)))
+	Expect(toString(content)).To(Equal(""))
+
+	Expect(data.Len()).To(Equal(0))
 }
 
 func pduDecoder(pdus ...interface{}) PDUDecoder {

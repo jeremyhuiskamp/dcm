@@ -1,6 +1,7 @@
 package dcmnet
 
 import (
+	"bytes"
 	log "github.com/Sirupsen/logrus"
 	"io"
 )
@@ -88,4 +89,61 @@ func (pdr *PDataReader) nextPDU() error {
 // stream did not contain another PDU.
 func (pdr PDataReader) GetFinalPDU() *PDU {
 	return pdr.pdu
+}
+
+type PDataWriter struct {
+	pdus PDUEncoder
+	buf  []byte
+}
+
+func NewPDataWriter(pdus PDUEncoder, pdulen uint32) PDataWriter {
+	return PDataWriter{pdus, make([]byte, 0, pdulen)}
+}
+
+func (pdw *PDataWriter) Write(buf []byte) (int, error) {
+	// attempt to copy to internal buffer
+	// when full, flush
+	written := 0
+
+	// TODO: don't copy to pdw.buf if we don't need to
+	// just flush directly from input!
+	for written < len(buf) {
+		tocopy := cap(pdw.buf) - len(pdw.buf)
+		if (len(buf) - written) < tocopy {
+			tocopy = len(buf) - written
+		}
+
+		pdw.buf = append(pdw.buf, buf[written:(tocopy+written)]...)
+		written += tocopy
+
+		if len(pdw.buf) == cap(pdw.buf) {
+			err := pdw.flush()
+			if err != nil {
+				return written, err
+			}
+		}
+	}
+
+	return written, nil
+}
+
+func (pdw *PDataWriter) flush() (err error) {
+	buf := bytes.NewBuffer(pdw.buf)
+	pdu := PDU{
+		PDUPresentationData,
+		uint32(len(pdw.buf)),
+		buf,
+	}
+
+	err = pdw.pdus.NextPDU(pdu)
+	pdw.buf = pdw.buf[:0]
+	return
+}
+
+func (pdw *PDataWriter) Close() error {
+	if len(pdw.buf) > 0 {
+		return pdw.flush()
+	} else {
+		return nil
+	}
 }

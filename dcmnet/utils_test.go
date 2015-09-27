@@ -1,7 +1,7 @@
 package dcmnet
 
-// These are not tests, but utils for writing tests.  Not sure what the naming
-// convention for such files should be in go.
+// These are not tests for utils, but utils for writing tests.
+// Not sure what the naming convention for such files should be in go.
 
 import (
 	"bytes"
@@ -36,6 +36,20 @@ func bufpdu(typ PDUType, pdvs ...interface{}) (buf bytes.Buffer) {
 	return buf
 }
 
+func getpdu(in *bytes.Buffer) (typ PDUType, data bytes.Buffer, err error) {
+	header, err := readFull(in, 6)
+	if err != nil {
+		return
+	}
+
+	typ = PDUType(header[0])
+	length := binary.BigEndian.Uint32(header[2:6])
+	content, err := readFull(in, length)
+	data.Write(content)
+
+	return
+}
+
 // bufpdv creates a pdv in a buffer
 func bufpdv(context uint8, tipe PDVType, last bool, data interface{}) (buf bytes.Buffer) {
 	dataBuf := toBuffer(data)
@@ -52,6 +66,31 @@ func bufpdv(context uint8, tipe PDVType, last bool, data interface{}) (buf bytes
 	buf.ReadFrom(&dataBuf)
 
 	return buf
+}
+
+func getpdv(in *bytes.Buffer) (
+	context uint8, typ PDVType, last bool, data bytes.Buffer, err error) {
+	header, err := readFull(in, 6)
+	if err != nil {
+		return
+	}
+
+	context = uint8(header[4])
+	var pdv PDV
+	pdv.Flags = uint8(header[5])
+	typ = pdv.GetType()
+	last = pdv.IsLast()
+	length := binary.BigEndian.Uint32(header[0:4]) - 2
+	content, err := readFull(in, length)
+	data.Write(content)
+
+	return
+}
+
+func readFull(in io.Reader, length uint32) ([]byte, error) {
+	data := make([]byte, length)
+	_, err := io.ReadFull(in, data)
+	return data, err
 }
 
 // toBuffer co-erces a thing into a Buffer
@@ -88,4 +127,9 @@ func toBytes(thing interface{}) []byte {
 func toString(thing interface{}) string {
 	b := toBuffer(thing)
 	return b.String()
+}
+
+func toPDU(typ PDUType, thing interface{}) PDU {
+	buf := toBuffer(thing)
+	return PDU{typ, uint32(buf.Len()), &buf}
 }
