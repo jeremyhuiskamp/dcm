@@ -5,6 +5,7 @@ package dcmnet
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/kamper/dcm/stream"
 	"io"
 )
@@ -22,14 +23,39 @@ const (
 	lastMask        uint8 = 0x02
 )
 
+// PDVFlags is a bitmap that contains boolean values for Command/Data and
+// Last/Not Last.
+type PDVFlags uint8
+
+func (flags PDVFlags) GetType() PDVType {
+	return PDVType(uint8(flags) & commandDataMask)
+}
+
+func (flags *PDVFlags) SetType(pdvType PDVType) {
+	*flags = PDVFlags((uint8(*flags) &^ commandDataMask) | uint8(pdvType))
+}
+
+func (flags PDVFlags) IsLast() bool {
+	return uint8(flags)&lastMask != 0
+}
+
+func (flags *PDVFlags) SetLast(last bool) {
+	if last {
+		*flags = PDVFlags((uint8(*flags) &^ lastMask) | 0x02)
+	} else {
+		*flags = PDVFlags(uint8(*flags) &^ lastMask)
+	}
+}
+
+func (flags PDVFlags) String() string {
+	return fmt.Sprintf("[Flags type=%s, last=%t]", flags.GetType(), flags.IsLast())
+}
+
 type PDV struct {
 	// TODO make presentation context id a specific type
 	Context uint8
 
-	// Flags is a bitmap that contains boolean values for Command/Data and
-	// Last/Not Last.  It should be preferred to access these through their
-	// respective accessor methods.
-	Flags uint8
+	Flags PDVFlags
 
 	Length uint32
 
@@ -37,23 +63,16 @@ type PDV struct {
 }
 
 func (pdv PDV) GetType() PDVType {
-	return PDVType(pdv.Flags & commandDataMask)
-}
-
-func (pdv *PDV) SetType(pdvType PDVType) {
-	pdv.Flags = (pdv.Flags &^ commandDataMask) | uint8(pdvType)
+	return pdv.Flags.GetType()
 }
 
 func (pdv PDV) IsLast() bool {
-	return pdv.Flags&lastMask != 0
+	return pdv.Flags.IsLast()
 }
 
-func (pdv *PDV) SetLast(last bool) {
-	if last {
-		pdv.Flags = (pdv.Flags &^ lastMask) | 0x02
-	} else {
-		pdv.Flags = pdv.Flags &^ lastMask
-	}
+func (pdv PDV) String() string {
+	return fmt.Sprintf("[PDV %s, context=%d, len=%d]",
+		pdv.Flags, pdv.Context, pdv.Length)
 }
 
 // PDVDecoder parses successive PDVs from an underlying stream (normally
@@ -71,7 +90,7 @@ func (d *PDVDecoder) NextPDV() (pdv *PDV, err error) {
 	pdv.Data, err = d.data.NextChunk(6, func(header []byte) int64 {
 		pdv.Length = binary.BigEndian.Uint32(header[:4])
 		pdv.Context = header[4]
-		pdv.Flags = header[5]
+		pdv.Flags = PDVFlags(header[5])
 		// length includes context and flags:
 		return int64(pdv.Length) - 2
 	})

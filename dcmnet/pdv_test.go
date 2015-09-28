@@ -8,76 +8,76 @@ import (
 func TestCommandVsData(t *testing.T) {
 	RegisterTestingT(t)
 
-	pdv := PDV{}
+	var flags PDVFlags
 
-	Expect(pdv.GetType()).To(Equal(Data)) // Data is default
+	Expect(flags.GetType()).To(Equal(Data)) // Data is default
 
-	pdv.SetType(Command)
-	Expect(pdv.GetType()).To(Equal(Command))
+	flags.SetType(Command)
+	Expect(flags.GetType()).To(Equal(Command))
 
-	pdv.SetType(Data)
-	Expect(pdv.GetType()).To(Equal(Data))
+	flags.SetType(Data)
+	Expect(flags.GetType()).To(Equal(Data))
 }
 
 func TestLast(t *testing.T) {
 	RegisterTestingT(t)
 
-	pdv := PDV{}
+	var flags PDVFlags
 
-	Expect(pdv.IsLast()).To(BeFalse()) // Not Last is default
+	Expect(flags.IsLast()).To(BeFalse()) // Not Last is default
 
-	pdv.SetLast(true)
-	Expect(pdv.IsLast()).To(BeTrue())
+	flags.SetLast(true)
+	Expect(flags.IsLast()).To(BeTrue())
 
-	pdv.SetLast(false)
+	flags.SetLast(false)
 }
 
 func TestLastDoesntAffectCommand(t *testing.T) {
 	RegisterTestingT(t)
 
-	pdv := PDV{}
+	var flags PDVFlags
 
-	Expect(pdv.GetType()).To(Equal(Data))
-	pdv.SetLast(!pdv.IsLast())
-	Expect(pdv.GetType()).To(Equal(Data))
-	pdv.SetLast(!pdv.IsLast())
-	Expect(pdv.GetType()).To(Equal(Data))
+	Expect(flags.GetType()).To(Equal(Data))
+	flags.SetLast(!flags.IsLast())
+	Expect(flags.GetType()).To(Equal(Data))
+	flags.SetLast(!flags.IsLast())
+	Expect(flags.GetType()).To(Equal(Data))
 
-	pdv.SetType(Command)
-	pdv.SetLast(!pdv.IsLast())
-	Expect(pdv.GetType()).To(Equal(Command))
-	pdv.SetLast(!pdv.IsLast())
-	Expect(pdv.GetType()).To(Equal(Command))
+	flags.SetType(Command)
+	flags.SetLast(!flags.IsLast())
+	Expect(flags.GetType()).To(Equal(Command))
+	flags.SetLast(!flags.IsLast())
+	Expect(flags.GetType()).To(Equal(Command))
 
-	pdv.SetType(Data)
-	pdv.SetLast(!pdv.IsLast())
-	Expect(pdv.GetType()).To(Equal(Data))
-	pdv.SetLast(!pdv.IsLast())
-	Expect(pdv.GetType()).To(Equal(Data))
+	flags.SetType(Data)
+	flags.SetLast(!flags.IsLast())
+	Expect(flags.GetType()).To(Equal(Data))
+	flags.SetLast(!flags.IsLast())
+	Expect(flags.GetType()).To(Equal(Data))
 }
 
 func TestCommandDoesntAffectLast(t *testing.T) {
 	RegisterTestingT(t)
 
-	pdv := PDV{}
+	var flags PDVFlags
 
-	Expect(pdv.IsLast()).To(BeFalse())
-	pdv.SetType(Command)
-	Expect(pdv.IsLast()).To(BeFalse())
-	pdv.SetType(Data)
-	Expect(pdv.IsLast()).To(BeFalse())
+	Expect(flags.IsLast()).To(BeFalse())
+	flags.SetType(Command)
+	Expect(flags.IsLast()).To(BeFalse())
+	flags.SetType(Data)
+	Expect(flags.IsLast()).To(BeFalse())
 
-	pdv.SetLast(true)
-	pdv.SetType(Command)
-	Expect(pdv.IsLast()).To(BeTrue())
-	pdv.SetType(Data)
-	Expect(pdv.IsLast()).To(BeTrue())
+	flags.SetLast(true)
+	flags.SetType(Command)
+	Expect(flags.IsLast()).To(BeTrue())
+	flags.SetType(Data)
+	Expect(flags.IsLast()).To(BeTrue())
 
-	pdv.SetLast(false)
-	pdv.SetType(Command)
-	Expect(pdv.IsLast()).To(BeFalse())
-	pdv.SetType(Data)
-	Expect(pdv.IsLast()).To(BeFalse())
+	flags.SetLast(false)
+	flags.SetType(Command)
+	Expect(flags.IsLast()).To(BeFalse())
+	flags.SetType(Data)
+	Expect(flags.IsLast()).To(BeFalse())
 }
 
 func TestReadOnePDV(t *testing.T) {

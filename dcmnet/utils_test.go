@@ -58,9 +58,9 @@ func bufpdv(context uint8, tipe PDVType, last bool, data interface{}) (buf bytes
 	header[4] = context
 
 	var pdv PDV
-	pdv.SetType(tipe)
-	pdv.SetLast(last)
-	header[5] = pdv.Flags
+	pdv.Flags.SetType(tipe)
+	pdv.Flags.SetLast(last)
+	header[5] = uint8(pdv.Flags)
 
 	buf.Write(header)
 	buf.ReadFrom(&dataBuf)
@@ -77,7 +77,7 @@ func getpdv(in *bytes.Buffer) (
 
 	context = uint8(header[4])
 	var pdv PDV
-	pdv.Flags = uint8(header[5])
+	pdv.Flags = PDVFlags(header[5])
 	typ = pdv.GetType()
 	last = pdv.IsLast()
 	length := binary.BigEndian.Uint32(header[0:4]) - 2
