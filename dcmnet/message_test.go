@@ -1,10 +1,12 @@
 package dcmnet
 
 import (
+	"bytes"
 	"github.com/Sirupsen/logrus"
 	. "github.com/onsi/gomega"
 	"io"
 	"io/ioutil"
+	"strings"
 	"testing"
 )
 
@@ -14,7 +16,7 @@ func init() {
 
 // TODO: tests for unexpected errors
 
-func TestSingleMessageSinglePDV(t *testing.T) {
+func TestReadSingleMessageSinglePDV(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(bufpdv(1, Data, true, "data"))
@@ -25,7 +27,7 @@ func TestSingleMessageSinglePDV(t *testing.T) {
 	expectNoMoreMessages(md)
 }
 
-func TestSingleMessageTwoPDVs(t *testing.T) {
+func TestReadSingleMessageTwoPDVs(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
@@ -38,7 +40,7 @@ func TestSingleMessageTwoPDVs(t *testing.T) {
 	expectNoMoreMessages(md)
 }
 
-func TestTwoMessages(t *testing.T) {
+func TestReadTwoMessages(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
@@ -52,7 +54,7 @@ func TestTwoMessages(t *testing.T) {
 	expectNoMoreMessages(md)
 }
 
-func TestDrainMessage(t *testing.T) {
+func TestReadDrainMessage(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
@@ -70,7 +72,7 @@ func TestDrainMessage(t *testing.T) {
 	expectNoMoreMessages(md)
 }
 
-func TestMessageUnexpectedPDVType(t *testing.T) {
+func TestReadMessageUnexpectedPDVType(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
@@ -82,7 +84,7 @@ func TestMessageUnexpectedPDVType(t *testing.T) {
 	expectMessageError(md, "unexpected type")
 }
 
-func TestMessageUnexpectedPresentationContext(t *testing.T) {
+func TestReadMessageUnexpectedPresentationContext(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
@@ -94,7 +96,7 @@ func TestMessageUnexpectedPresentationContext(t *testing.T) {
 	expectMessageError(md, "unexpected presentation context")
 }
 
-func TestMessageUnexpectedMissingPDV(t *testing.T) {
+func TestReadMessageUnexpectedMissingPDV(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
@@ -110,7 +112,7 @@ func TestMessageUnexpectedMissingPDV(t *testing.T) {
 	Expect(err).To(Equal(io.ErrUnexpectedEOF))
 }
 
-func TestMessageWithNoPDVs(t *testing.T) {
+func TestReadMessageWithNoPDVs(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat()
@@ -118,6 +120,116 @@ func TestMessageWithNoPDVs(t *testing.T) {
 	md := NewMessageDecoder(NewPDVDecoder(&data))
 
 	expectNoMoreMessages(md)
+}
+
+func TestWriteOneMessage(t *testing.T) {
+	RegisterTestingT(t)
+
+	input := "abcdefghijklmnopqrstuvwxyz0123456789"
+
+	// hits edge cases in pdu lengths
+	// nb: a pdu that can't contain any data after the pdv header is illegal:
+	for pdulen := uint32(pdvHeaderLen + 1); pdulen < 20; pdulen++ {
+		for inputlen := 0; inputlen <= len(input); inputlen++ {
+			curinput := input[:inputlen]
+
+			data := new(bytes.Buffer)
+			pdus := NewPDUEncoder(data)
+			msgs := NewMessageEncoder(pdus, pdulen)
+
+			msgs.NextMessage(Message{
+				Context: 1,
+				Type:    Command,
+				Data:    toBufferP(curinput),
+			})
+
+			output := new(bytes.Buffer)
+			last := false
+			for data.Len() > 0 && !last {
+				pduType, pduData, err := getpdu(data)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(pduType).To(Equal(PDUPresentationData))
+				context, pdvType, thislast, pdvData, err := getpdv(&pduData)
+				last = thislast
+				Expect(err).ToNot(HaveOccurred())
+				Expect(context).To(Equal(uint8(1)))
+				Expect(pdvType).To(Equal(Command))
+				output.Write(pdvData.Bytes())
+			}
+
+			Expect(data.Len()).To(Equal(0))
+
+			if len(curinput) == 0 {
+				Expect(last).To(BeFalse())
+			} else {
+				Expect(last).To(BeTrue())
+			}
+
+			Expect(output.String()).To(Equal(curinput),
+				"pdulen=%d, inputlen=%d", pdulen, inputlen)
+
+			if t.Failed() {
+				return
+			}
+		}
+	}
+}
+
+func TestWriteMultipleMessages(t *testing.T) {
+	RegisterTestingT(t)
+
+	inputs := []string{
+		"short",
+		strings.Repeat("long", 5),
+		strings.Repeat("reallylong", 30),
+	}
+
+	data := new(bytes.Buffer)
+	pdus := NewPDUEncoder(data)
+	msgs := NewMessageEncoder(pdus, 30)
+
+	for context, value := range inputs {
+		msgs.NextMessage(Message{
+			Context: uint8(context),
+			Type:    Command,
+			Data:    toBufferP("command" + value),
+		})
+		msgs.NextMessage(Message{
+			Context: uint8(context),
+			Type:    Data,
+			Data:    toBufferP("data" + value),
+		})
+	}
+
+	expectMessage := func(context uint8, typ PDVType) string {
+		last := false
+		output := new(bytes.Buffer)
+
+		for !last {
+			pduType, pduData, err := getpdu(data)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pduType).To(Equal(PDUPresentationData))
+
+			actualContext, pdvType, pdvLast, pdvData, err := getpdv(&pduData)
+			last = pdvLast
+			Expect(err).ToNot(HaveOccurred())
+			Expect(actualContext).To(Equal(context))
+			Expect(pdvType).To(Equal(typ))
+			output.Write(pdvData.Bytes())
+		}
+
+		return output.String()
+	}
+
+	for context, value := range inputs {
+		commandValue := expectMessage(uint8(context), Command)
+		Expect(commandValue).To(Equal("command" + value))
+
+		dataValue := expectMessage(uint8(context), Data)
+		Expect(dataValue).To(Equal("data" + value))
+	}
+
+	Expect(data.Len()).To(Equal(0))
 }
 
 func expectMessage(msgs MessageDecoder, context uint8, tipe PDVType, value string) {

@@ -1,6 +1,8 @@
 package dcmnet
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
@@ -121,4 +123,136 @@ func (mr *MessageReader) nextPDV() error {
 	mr.pdv = nextpdv
 
 	return nil
+}
+
+const (
+	pdvHeaderLen = 6
+	minPDULen = pdvHeaderLen + 1
+)
+
+// MessageEncoder encodes successive messages to PDUs.  Exactly one PDV is
+// written per PDU (the standard does not require this in all cases, but it is
+// simpler to implement and the overhead of an unnecessary PDU header is not
+// very big).
+//
+// Unlike MessageDecoder, this ties down into the PDU layer because we have to
+// be (and can be) more strict in the sense that MessageDecoder & friends can
+// handle PDVs split across multiple PDUs, which is not legal to send.  As such,
+// we have to know where the PDU buf ends instead of hoping that we won't make
+// our PDVs too long.  It turns out to be simpler to bake everything into one
+// layer.
+type MessageEncoder struct {
+	pdus      PDUEncoder
+	maxPDUlen uint32
+}
+
+func NewMessageEncoder(pdus PDUEncoder, maxPDULen uint32) MessageEncoder {
+	return MessageEncoder{pdus, maxPDULen}
+}
+
+func (me *MessageEncoder) NextMessage(msg Message) error {
+	mw := NewMessageWriter(me.pdus, me.maxPDUlen, msg.Context, msg.Type)
+	_, err := msg.Data.WriteTo(&mw)
+	if err != nil {
+		return err
+	}
+
+	return mw.flush(true)
+}
+
+// MessageWriter implements io.Reader to write a single Message in a series of PDUs.
+type MessageWriter struct {
+	pdus PDUEncoder
+
+	// cap() == maxPDULen
+	pduBuf []byte
+
+	// is pduBuf[:6]
+	pdvHeader []byte
+
+	pdvFlags PDVFlags
+
+	// is pduBuf[6:x] where x is the current amount of data buffered
+	pdvBody []byte
+}
+
+func NewMessageWriter(pdus PDUEncoder, maxPDULen uint32, context uint8,
+	pdvType PDVType) MessageWriter {
+	if maxPDULen < minPDULen {
+		panic(fmt.Sprintf("PDU length %d must be at least %d to allow room " +
+				"for the PDV header plus at least one byte of data.",
+				maxPDULen, minPDULen))
+	}
+	
+	mw := MessageWriter{
+		pdus:   pdus,
+		pduBuf: make([]byte, maxPDULen),
+	}
+
+	mw.pdvHeader = mw.pduBuf[:pdvHeaderLen]
+	// these are the same for the whole message:
+	mw.pdvHeader[4] = context
+	mw.pdvFlags.SetType(pdvType)
+	// the other header fields are dependent on each individual pdv
+
+	mw.pdvBody = mw.pduBuf[pdvHeaderLen:pdvHeaderLen]
+
+	return mw
+}
+
+func (mw *MessageWriter) Write(buf []byte) (int, error) {
+	written := 0
+
+	for written < len(buf) {
+		if len(mw.pdvBody) == cap(mw.pdvBody) {
+			// we have more data, so the current buffer can't be the last one
+			err := mw.flush(false)
+			if err != nil {
+				return written, err
+			}
+		}
+
+		tocopy := cap(mw.pdvBody) - len(mw.pdvBody)
+		if len(buf)-written < tocopy {
+			tocopy = len(buf) - written
+		}
+
+		// this had better not cause a re-allocation!
+		// TODO: if we're going to hit capacity, try to flush from buf directly
+		// instead of copying
+		mw.pdvBody = append(mw.pdvBody, buf[written:(tocopy+written)]...)
+		written += tocopy
+	}
+
+	return written, nil
+}
+
+func (mw *MessageWriter) flush(last bool) error {
+	// pdv length is body length + space for flags & context:
+	pdvlen := uint32(len(mw.pdvBody) + 2)
+
+	// to safely allow flushing after writing all data, if we're not sure if
+	// there's unflushed data or not:
+	if pdvlen <= 2 {
+		return nil
+	}
+
+	// lay out header:
+	binary.BigEndian.PutUint32(mw.pdvHeader[:4], pdvlen)
+	mw.pdvFlags.SetLast(last)
+	mw.pdvHeader[5] = uint8(mw.pdvFlags)
+
+	// -2 because we already counted flags & context in the pdvlen
+	pdulen := pdvlen + (pdvHeaderLen - 2)
+	pdu := PDU{
+		Type:   PDUPresentationData,
+		Length: pdulen,
+		Data:   bytes.NewReader(mw.pduBuf[:pdulen]),
+	}
+
+	err := mw.pdus.NextPDU(pdu)
+
+	mw.pdvBody = mw.pdvBody[:0]
+
+	return err
 }

@@ -77,7 +77,7 @@ func (w *PDUEncoder) NextPDU(pdu PDU) (err error) {
 
 	_, err = w.out.Write(w.header[:])
 	if err != nil {
-		return err
+		return
 	}
 
 	// should we validate that the amount of data written matches what we said

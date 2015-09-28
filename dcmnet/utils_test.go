@@ -119,6 +119,11 @@ func toBuffer(thing interface{}) bytes.Buffer {
 	panic(fmt.Sprintf("Could not convert thing %T to bytes.Buffer", thing))
 }
 
+func toBufferP(thing interface{}) *bytes.Buffer {
+	b := toBuffer(thing)
+	return &b
+}
+
 func toBytes(thing interface{}) []byte {
 	b := toBuffer(thing)
 	return b.Bytes()
