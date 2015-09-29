@@ -67,7 +67,7 @@ func NewPDUEncoder(out io.Writer) PDUEncoder {
 }
 
 func (w *PDUEncoder) NextPDU(pdu PDU) (err error) {
-	w.header[0] = uint8(pdu.Type)
+	w.header[0] = byte(pdu.Type)
 	w.header[1] = 0
 	// here, we could consider ignoring the passed-in length, but instead
 	// writing the data to a buffer and calculating the length?

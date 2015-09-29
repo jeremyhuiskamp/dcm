@@ -121,7 +121,7 @@ func TestDrainFirstPDVWhenAskedForSecond(t *testing.T) {
 	expectNoMorePDVs(decoder)
 }
 
-func expectNextPDV(decoder PDVDecoder, context uint8, tipe PDVType, last bool,
+func expectNextPDV(decoder PDVDecoder, context PCID, tipe PDVType, last bool,
 	content string) {
 
 	pdv, err := decoder.NextPDV()

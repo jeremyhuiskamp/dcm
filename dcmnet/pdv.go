@@ -19,8 +19,8 @@ const (
 )
 
 const (
-	commandDataMask uint8 = 0x01
-	lastMask        uint8 = 0x02
+	commandDataMask byte = 0x01
+	lastMask        byte = 0x02
 )
 
 // PDVFlags is a bitmap that contains boolean values for Command/Data and
@@ -51,9 +51,12 @@ func (flags PDVFlags) String() string {
 	return fmt.Sprintf("[Flags type=%s, last=%t]", flags.GetType(), flags.IsLast())
 }
 
+// PCID == presentation context id
+type PCID uint8
+
 type PDV struct {
 	// TODO make presentation context id a specific type
-	Context uint8
+	Context PCID
 
 	Flags PDVFlags
 
@@ -89,7 +92,7 @@ func (d *PDVDecoder) NextPDV() (pdv *PDV, err error) {
 	pdv = &PDV{}
 	pdv.Data, err = d.data.NextChunk(6, func(header []byte) int64 {
 		pdv.Length = binary.BigEndian.Uint32(header[:4])
-		pdv.Context = header[4]
+		pdv.Context = PCID(header[4])
 		pdv.Flags = PDVFlags(header[5])
 		// length includes context and flags:
 		return int64(pdv.Length) - 2

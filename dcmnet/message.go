@@ -15,7 +15,7 @@ import (
 var msgLog = log.Category("dcm.msg")
 
 type Message struct {
-	Context uint8
+	Context PCID
 	Type    PDVType
 	Data    stream.Stream
 }
@@ -127,7 +127,7 @@ func (mr *MessageReader) nextPDV() error {
 
 const (
 	pdvHeaderLen = 6
-	minPDULen = pdvHeaderLen + 1
+	minPDULen    = pdvHeaderLen + 1
 )
 
 // MessageEncoder encodes successive messages to PDUs.  Exactly one PDV is
@@ -176,14 +176,15 @@ type MessageWriter struct {
 	pdvBody []byte
 }
 
-func NewMessageWriter(pdus PDUEncoder, maxPDULen uint32, context uint8,
+func NewMessageWriter(pdus PDUEncoder, maxPDULen uint32, context PCID,
 	pdvType PDVType) MessageWriter {
+
 	if maxPDULen < minPDULen {
-		panic(fmt.Sprintf("PDU length %d must be at least %d to allow room " +
-				"for the PDV header plus at least one byte of data.",
-				maxPDULen, minPDULen))
+		panic(fmt.Sprintf("PDU length %d must be at least %d to allow room "+
+			"for the PDV header plus at least one byte of data.",
+			maxPDULen, minPDULen))
 	}
-	
+
 	mw := MessageWriter{
 		pdus:   pdus,
 		pduBuf: make([]byte, maxPDULen),
@@ -191,7 +192,7 @@ func NewMessageWriter(pdus PDUEncoder, maxPDULen uint32, context uint8,
 
 	mw.pdvHeader = mw.pduBuf[:pdvHeaderLen]
 	// these are the same for the whole message:
-	mw.pdvHeader[4] = context
+	mw.pdvHeader[4] = byte(context)
 	mw.pdvFlags.SetType(pdvType)
 	// the other header fields are dependent on each individual pdv
 
@@ -240,7 +241,7 @@ func (mw *MessageWriter) flush(last bool) error {
 	// lay out header:
 	binary.BigEndian.PutUint32(mw.pdvHeader[:4], pdvlen)
 	mw.pdvFlags.SetLast(last)
-	mw.pdvHeader[5] = uint8(mw.pdvFlags)
+	mw.pdvHeader[5] = byte(mw.pdvFlags)
 
 	// -2 because we already counted flags & context in the pdvlen
 	pdulen := pdvlen + (pdvHeaderLen - 2)

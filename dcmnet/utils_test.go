@@ -51,16 +51,16 @@ func getpdu(in *bytes.Buffer) (typ PDUType, data bytes.Buffer, err error) {
 }
 
 // bufpdv creates a pdv in a buffer
-func bufpdv(context uint8, tipe PDVType, last bool, data interface{}) (buf bytes.Buffer) {
+func bufpdv(context PCID, tipe PDVType, last bool, data interface{}) (buf bytes.Buffer) {
 	dataBuf := toBuffer(data)
 	header := make([]byte, 6)
 	binary.BigEndian.PutUint32(header[0:4], uint32(dataBuf.Len()+2))
-	header[4] = context
+	header[4] = byte(context)
 
 	var pdv PDV
 	pdv.Flags.SetType(tipe)
 	pdv.Flags.SetLast(last)
-	header[5] = uint8(pdv.Flags)
+	header[5] = byte(pdv.Flags)
 
 	buf.Write(header)
 	buf.ReadFrom(&dataBuf)
@@ -69,13 +69,13 @@ func bufpdv(context uint8, tipe PDVType, last bool, data interface{}) (buf bytes
 }
 
 func getpdv(in *bytes.Buffer) (
-	context uint8, typ PDVType, last bool, data bytes.Buffer, err error) {
+	context PCID, typ PDVType, last bool, data bytes.Buffer, err error) {
 	header, err := readFull(in, 6)
 	if err != nil {
 		return
 	}
 
-	context = uint8(header[4])
+	context = PCID(header[4])
 	var pdv PDV
 	pdv.Flags = PDVFlags(header[5])
 	typ = pdv.GetType()

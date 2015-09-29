@@ -41,9 +41,9 @@ func TestDrainFirstItemWhenAskedForSecond(t *testing.T) {
 	expectNextItem(reader, 0x02, "two")
 }
 
-func item(itemtype uint8, data string) (buf bytes.Buffer) {
+func item(itemtype ItemType, data string) (buf bytes.Buffer) {
 	item := make([]byte, 4)
-	item[0] = itemtype
+	item[0] = byte(itemtype)
 	binary.BigEndian.PutUint16(item[2:4], uint16(len(data)))
 	buf.Write(item)
 	buf.Write([]byte(data))

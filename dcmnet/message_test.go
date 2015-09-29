@@ -152,7 +152,7 @@ func TestWriteOneMessage(t *testing.T) {
 				context, pdvType, thislast, pdvData, err := getpdv(&pduData)
 				last = thislast
 				Expect(err).ToNot(HaveOccurred())
-				Expect(context).To(Equal(uint8(1)))
+				Expect(context).To(Equal(PCID(1)))
 				Expect(pdvType).To(Equal(Command))
 				output.Write(pdvData.Bytes())
 			}
@@ -190,18 +190,18 @@ func TestWriteMultipleMessages(t *testing.T) {
 
 	for context, value := range inputs {
 		msgs.NextMessage(Message{
-			Context: uint8(context),
+			Context: PCID(context),
 			Type:    Command,
 			Data:    toBufferP("command" + value),
 		})
 		msgs.NextMessage(Message{
-			Context: uint8(context),
+			Context: PCID(context),
 			Type:    Data,
 			Data:    toBufferP("data" + value),
 		})
 	}
 
-	expectMessage := func(context uint8, typ PDVType) string {
+	expectMessage := func(context PCID, typ PDVType) string {
 		last := false
 		output := new(bytes.Buffer)
 
@@ -222,17 +222,17 @@ func TestWriteMultipleMessages(t *testing.T) {
 	}
 
 	for context, value := range inputs {
-		commandValue := expectMessage(uint8(context), Command)
+		commandValue := expectMessage(PCID(context), Command)
 		Expect(commandValue).To(Equal("command" + value))
 
-		dataValue := expectMessage(uint8(context), Data)
+		dataValue := expectMessage(PCID(context), Data)
 		Expect(dataValue).To(Equal("data" + value))
 	}
 
 	Expect(data.Len()).To(Equal(0))
 }
 
-func expectMessage(msgs MessageDecoder, context uint8, tipe PDVType, value string) {
+func expectMessage(msgs MessageDecoder, context PCID, tipe PDVType, value string) {
 	msg, err := msgs.NextMessage()
 	Expect(err).To(BeNil())
 	Expect(msg).ToNot(BeNil())

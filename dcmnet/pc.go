@@ -9,7 +9,7 @@ import (
 )
 
 type PresentationContext struct {
-	Id               uint8
+	Id               PCID
 	Result           uint32
 	AbstractSyntax   string
 	TransferSyntaxes []string
@@ -23,7 +23,7 @@ func (pc PresentationContext) Write(dst io.Writer) {
 
 	buf := new(bytes.Buffer)
 
-	buf.WriteByte(pc.Id)
+	buf.WriteByte(byte(pc.Id))
 	buf.WriteByte(0)
 	buf.WriteByte(0)
 	buf.WriteByte(0)
@@ -57,7 +57,7 @@ func (pc *PresentationContext) Read(src io.Reader) error {
 	if err != nil {
 		return err
 	}
-	pc.Id = buf[0]
+	pc.Id = PCID(buf[0])
 	log.Printf("Read presentation context id %d\n", pc.Id)
 
 	return EachItem(src, func(item *Item) (err error) {

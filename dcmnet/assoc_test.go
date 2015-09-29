@@ -19,7 +19,7 @@ func TestParseAssocRQCEcho(t *testing.T) {
 
 	Expect(assocrq.PresentationContexts).To(HaveLen(1))
 	pc1 := assocrq.PresentationContexts[0]
-	Expect(pc1.Id).To(Equal(uint8(1)))
+	Expect(pc1.Id).To(Equal(PCID(1)))
 	Expect(pc1.AbstractSyntax).To(Equal("1.2.840.10008.1.1"))
 	Expect(pc1.Result).To(Equal(uint32(0))) // not sure if this matters in a req
 	Expect(pc1.TransferSyntaxes).To(HaveLen(1))
@@ -47,7 +47,7 @@ func TestParseAssocACCEcho(t *testing.T) {
 
 	Expect(assocac.PresentationContexts).To(HaveLen(1))
 	pc1 := assocac.PresentationContexts[0]
-	Expect(pc1.Id).To(Equal(uint8(1)))
+	Expect(pc1.Id).To(Equal(PCID(1)))
 	Expect(pc1.AbstractSyntax).To(HaveLen(0))
 	Expect(pc1.Result).To(Equal(uint32(0)))
 	Expect(pc1.TransferSyntaxes).To(HaveLen(1))
