@@ -20,9 +20,9 @@ func TestCommandAndDataSamePDU(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessage(msgs, 1, Command, "command")
-	expectMessage(msgs, 1, Data, "data")
-	expectNoMoreMessages(msgs)
+	expectMessageElement(msgs, 1, Command, "command")
+	expectMessageElement(msgs, 1, Data, "data")
+	expectNoMoreMessageElements(msgs)
 
 	expectRelease(pdata)
 }
@@ -39,9 +39,9 @@ func TestCommandAndDataDifferentPDU(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessage(msgs, 1, Command, "command")
-	expectMessage(msgs, 1, Data, "data")
-	expectNoMoreMessages(msgs)
+	expectMessageElement(msgs, 1, Command, "command")
+	expectMessageElement(msgs, 1, Data, "data")
+	expectNoMoreMessageElements(msgs)
 
 	expectRelease(pdata)
 }
@@ -60,9 +60,9 @@ func TestCommandAndDataOverTwoPDUs(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessage(msgs, 1, Command, "command")
-	expectMessage(msgs, 1, Data, "data1data2")
-	expectNoMoreMessages(msgs)
+	expectMessageElement(msgs, 1, Command, "command")
+	expectMessageElement(msgs, 1, Data, "data1data2")
+	expectNoMoreMessageElements(msgs)
 
 	expectRelease(pdata)
 }
@@ -74,10 +74,10 @@ func expectRelease(pdata *PDataReader) {
 	Expect(releaserq.Length).To(Equal(uint32(0)))
 }
 
-func setupParse(buf bytes.Buffer) (*PDataReader, MessageDecoder) {
+func setupParse(buf bytes.Buffer) (*PDataReader, MessageElementDecoder) {
 	pdus := NewPDUDecoder(&buf)
 	pdata := NewPDataReader(pdus)
 	pdvs := NewPDVDecoder(&pdata)
-	msgs := NewMessageDecoder(pdvs)
+	msgs := NewMessageElementDecoder(pdvs)
 	return &pdata, msgs
 }

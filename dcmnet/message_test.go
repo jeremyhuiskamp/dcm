@@ -16,95 +16,95 @@ func init() {
 
 // TODO: tests for unexpected errors
 
-func TestReadSingleMessageSinglePDV(t *testing.T) {
+func TestReadSingleMessageElementSinglePDV(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(bufpdv(1, Data, true, "data"))
 
-	md := NewMessageDecoder(NewPDVDecoder(&data))
+	med := NewMessageElementDecoder(NewPDVDecoder(&data))
 
-	expectMessage(md, 1, Data, "data")
-	expectNoMoreMessages(md)
+	expectMessageElement(med, 1, Data, "data")
+	expectNoMoreMessageElements(med)
 }
 
-func TestReadSingleMessageTwoPDVs(t *testing.T) {
+func TestReadSingleMessageElementTwoPDVs(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
 		bufpdv(1, Data, false, "data1"),
 		bufpdv(1, Data, true, "data2"))
 
-	md := NewMessageDecoder(NewPDVDecoder(&data))
+	med := NewMessageElementDecoder(NewPDVDecoder(&data))
 
-	expectMessage(md, 1, Data, "data1data2")
-	expectNoMoreMessages(md)
+	expectMessageElement(med, 1, Data, "data1data2")
+	expectNoMoreMessageElements(med)
 }
 
-func TestReadTwoMessages(t *testing.T) {
+func TestReadTwoMessageElements(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
 		bufpdv(1, Data, true, "data"),
 		bufpdv(2, Command, true, "command"))
 
-	md := NewMessageDecoder(NewPDVDecoder(&data))
+	med := NewMessageElementDecoder(NewPDVDecoder(&data))
 
-	expectMessage(md, 1, Data, "data")
-	expectMessage(md, 2, Command, "command")
-	expectNoMoreMessages(md)
+	expectMessageElement(med, 1, Data, "data")
+	expectMessageElement(med, 2, Command, "command")
+	expectNoMoreMessageElements(med)
 }
 
-func TestReadDrainMessage(t *testing.T) {
+func TestReadDrainMessageElement(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
 		bufpdv(1, Data, true, "data"),
 		bufpdv(2, Command, true, "command"))
 
-	md := NewMessageDecoder(NewPDVDecoder(&data))
+	med := NewMessageElementDecoder(NewPDVDecoder(&data))
 
-	msg, err := md.NextMessage()
+	msg, err := med.NextMessageElement()
 	Expect(err).To(BeNil())
 	Expect(msg).ToNot(BeNil())
 	// don't read contents...
 
-	expectMessage(md, 2, Command, "command")
-	expectNoMoreMessages(md)
+	expectMessageElement(med, 2, Command, "command")
+	expectNoMoreMessageElements(med)
 }
 
-func TestReadMessageUnexpectedPDVType(t *testing.T) {
+func TestReadMessageElementUnexpectedPDVType(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
 		bufpdv(1, Data, false, "data"),
 		bufpdv(1, Command, true, "command"))
 
-	md := NewMessageDecoder(NewPDVDecoder(&data))
+	med := NewMessageElementDecoder(NewPDVDecoder(&data))
 
-	expectMessageError(md, "unexpected type")
+	expectMessageElementError(med, "unexpected type")
 }
 
-func TestReadMessageUnexpectedPresentationContext(t *testing.T) {
+func TestReadMessageElementUnexpectedPresentationContext(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
 		bufpdv(1, Data, false, "data1"),
 		bufpdv(2, Data, true, "data2"))
 
-	md := NewMessageDecoder(NewPDVDecoder(&data))
+	med := NewMessageElementDecoder(NewPDVDecoder(&data))
 
-	expectMessageError(md, "unexpected presentation context")
+	expectMessageElementError(med, "unexpected presentation context")
 }
 
-func TestReadMessageUnexpectedMissingPDV(t *testing.T) {
+func TestReadMessageElementUnexpectedMissingPDV(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat(
 		bufpdv(1, Command, false, "data1"))
 
-	md := NewMessageDecoder(NewPDVDecoder(&data))
+	med := NewMessageElementDecoder(NewPDVDecoder(&data))
 
-	msg, err := md.NextMessage()
+	msg, err := med.NextMessageElement()
 	Expect(err).To(BeNil())
 	Expect(msg).ToNot(BeNil())
 
@@ -112,17 +112,17 @@ func TestReadMessageUnexpectedMissingPDV(t *testing.T) {
 	Expect(err).To(Equal(io.ErrUnexpectedEOF))
 }
 
-func TestReadMessageWithNoPDVs(t *testing.T) {
+func TestReadMessageElementWithNoPDVs(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufcat()
 
-	md := NewMessageDecoder(NewPDVDecoder(&data))
+	med := NewMessageElementDecoder(NewPDVDecoder(&data))
 
-	expectNoMoreMessages(md)
+	expectNoMoreMessageElements(med)
 }
 
-func TestWriteOneMessage(t *testing.T) {
+func TestWriteOneMessageElement(t *testing.T) {
 	RegisterTestingT(t)
 
 	input := "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -135,9 +135,9 @@ func TestWriteOneMessage(t *testing.T) {
 
 			data := new(bytes.Buffer)
 			pdus := NewPDUEncoder(data)
-			msgs := NewMessageEncoder(pdus, pdulen)
+			msgs := NewMessageElementEncoder(pdus, pdulen)
 
-			msgs.NextMessage(Message{
+			msgs.NextMessageElement(MessageElement{
 				Context: 1,
 				Type:    Command,
 				Data:    toBufferP(curinput),
@@ -175,7 +175,7 @@ func TestWriteOneMessage(t *testing.T) {
 	}
 }
 
-func TestWriteMultipleMessages(t *testing.T) {
+func TestWriteMultipleMessageElements(t *testing.T) {
 	RegisterTestingT(t)
 
 	inputs := []string{
@@ -186,22 +186,22 @@ func TestWriteMultipleMessages(t *testing.T) {
 
 	data := new(bytes.Buffer)
 	pdus := NewPDUEncoder(data)
-	msgs := NewMessageEncoder(pdus, 30)
+	msgs := NewMessageElementEncoder(pdus, 30)
 
 	for context, value := range inputs {
-		msgs.NextMessage(Message{
+		msgs.NextMessageElement(MessageElement{
 			Context: PCID(context),
 			Type:    Command,
 			Data:    toBufferP("command" + value),
 		})
-		msgs.NextMessage(Message{
+		msgs.NextMessageElement(MessageElement{
 			Context: PCID(context),
 			Type:    Data,
 			Data:    toBufferP("data" + value),
 		})
 	}
 
-	expectMessage := func(context PCID, typ PDVType) string {
+	expectMessageElement := func(context PCID, typ PDVType) string {
 		last := false
 		output := new(bytes.Buffer)
 
@@ -222,18 +222,19 @@ func TestWriteMultipleMessages(t *testing.T) {
 	}
 
 	for context, value := range inputs {
-		commandValue := expectMessage(PCID(context), Command)
+		commandValue := expectMessageElement(PCID(context), Command)
 		Expect(commandValue).To(Equal("command" + value))
 
-		dataValue := expectMessage(PCID(context), Data)
+		dataValue := expectMessageElement(PCID(context), Data)
 		Expect(dataValue).To(Equal("data" + value))
 	}
 
 	Expect(data.Len()).To(Equal(0))
 }
 
-func expectMessage(msgs MessageDecoder, context PCID, tipe PDVType, value string) {
-	msg, err := msgs.NextMessage()
+func expectMessageElement(msgs MessageElementDecoder, context PCID,
+	tipe PDVType, value string) {
+	msg, err := msgs.NextMessageElement()
 	Expect(err).To(BeNil())
 	Expect(msg).ToNot(BeNil())
 	Expect(msg.Context).To(Equal(context))
@@ -241,8 +242,8 @@ func expectMessage(msgs MessageDecoder, context PCID, tipe PDVType, value string
 	Expect(toString(msg.Data)).To(Equal(value))
 }
 
-func expectMessageError(msgs MessageDecoder, errSubstring string) {
-	msg, err := msgs.NextMessage()
+func expectMessageElementError(msgs MessageElementDecoder, errSubstring string) {
+	msg, err := msgs.NextMessageElement()
 	Expect(err).To(BeNil())
 	Expect(msg).ToNot(BeNil())
 
@@ -251,8 +252,8 @@ func expectMessageError(msgs MessageDecoder, errSubstring string) {
 	Expect(err.Error()).To(ContainSubstring(errSubstring))
 }
 
-func expectNoMoreMessages(msgs MessageDecoder) {
-	msg, err := msgs.NextMessage()
+func expectNoMoreMessageElements(msgs MessageElementDecoder) {
+	msg, err := msgs.NextMessageElement()
 	Expect(err).To(BeNil())
 	Expect(msg).To(BeNil())
 }
