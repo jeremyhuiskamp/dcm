@@ -30,3 +30,11 @@ func TestCommandFieldToggleReqRsp(t *testing.T) {
 	Expect(CStoreRsp.GetReq()).To(Equal(CStoreReq))
 	Expect(CStoreRsp.GetRsp()).To(Equal(CStoreRsp))
 }
+
+func TestCommandDataSetType(t *testing.T) {
+	RegisterTestingT(t)
+
+	Expect(CommandHasNoDataSet.HasDataset()).To(BeFalse())
+	Expect(CommandHasDataSet.HasDataset()).To(BeTrue())
+	Expect(CommandDataSetType(1).HasDataset()).To(BeTrue())
+}

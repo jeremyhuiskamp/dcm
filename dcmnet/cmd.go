@@ -49,3 +49,20 @@ func (cf CommandField) GetReq() CommandField {
 func (cf CommandField) GetRsp() CommandField {
 	return cf | ReqRspMask
 }
+
+// CommandDataSetType is a value that can appear in (0000,0800).
+type CommandDataSetType uint16
+
+const (
+	// CommandHasNoDataSet is the only value that indicates that the command
+	// has no data set
+	CommandHasNoDataSet CommandDataSetType = 0x0101
+	// CommandHasData is the historical value that indicates that the command
+	// has a data set.  However, any value that is not CommandHasNoDataSet
+	// (0x0101) means the same thing.
+	CommandHasDataSet CommandDataSetType = 0x0102
+)
+
+func (cdst CommandDataSetType) HasDataset() bool {
+	return cdst != CommandHasNoDataSet
+}
