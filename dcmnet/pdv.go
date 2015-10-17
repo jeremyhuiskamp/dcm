@@ -51,11 +51,7 @@ func (flags PDVFlags) String() string {
 	return fmt.Sprintf("[Flags type=%s, last=%t]", flags.GetType(), flags.IsLast())
 }
 
-// PCID == presentation context id
-type PCID uint8
-
 type PDV struct {
-	// TODO make presentation context id a specific type
 	Context PCID
 
 	Flags PDVFlags

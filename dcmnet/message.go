@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
+	"github.com/kamper/dcm/dcm"
+	"github.com/kamper/dcm/dcmio"
 	"github.com/kamper/dcm/log"
 	"github.com/kamper/dcm/stream"
 	"io"
@@ -260,6 +262,134 @@ func (mew *MessageElementWriter) flush(last bool) error {
 	err := mew.pdus.NextPDU(pdu)
 
 	mew.pdvBody = mew.pdvBody[:0]
+
+	return err
+}
+
+type Message struct {
+	Command dcm.Object
+	Data    stream.Stream
+	TCap    TransferCapability
+}
+
+// ReadData parses the data stream into an object.
+// If you expect the data to be large (eg, an image), you have the option to
+// access it directly through the stream instead.
+func (msg Message) ReadData() (obj dcm.Object, err error) {
+	if len(msg.TCap.TransferSyntaxes) != 1 {
+		return obj, errors.New(fmt.Sprintf("Expected exactly one transfer "+
+			"syntax, but have: %s", msg.TCap.TransferSyntaxes))
+	}
+
+	ts := msg.TCap.TransferSyntaxes[0]
+	parser := dcmio.NewStreamParser(msg.Data, ts)
+	return dcmio.Build(parser)
+}
+
+type MessageDecoder struct {
+	contexts PresentationContexts
+	msgs     MessageElementDecoder
+}
+
+func NewMessageDecoder(contexts PresentationContexts, msgs MessageElementDecoder) MessageDecoder {
+	return MessageDecoder{contexts, msgs}
+}
+
+func (md *MessageDecoder) NextMessage() (*Message, error) {
+	// drain previous message, if any?
+	// or will the element decoder have done that for us already?..
+
+	cmdMsg, err := md.msgs.NextMessageElement()
+	if cmdMsg == nil {
+		return nil, err
+	}
+
+	if cmdMsg.Type != Command {
+		return nil, errors.New(fmt.Sprintf("Expected a command message element "+
+			"but got %s instead.", cmdMsg.Type))
+	}
+
+	tcap := md.contexts.FindAcceptedTCap(cmdMsg.Context)
+	if tcap == nil {
+		return nil, errors.New(fmt.Sprintf(
+			"Unrecognized presentation context id: %s", cmdMsg.Context))
+	}
+
+	// TODO: validate role?
+	// we can actually complete this method without it, so perhaps we should
+	// leave that for another layer to worry about
+
+	// see PS 3.7, 6.3.1 for transfer syntax of command objects:
+	cmd, err := dcmio.Build(dcmio.NewStreamParser(
+		cmdMsg.Data, dcm.ImplicitVRLittleEndian))
+	if err != nil {
+		return nil, err
+	}
+
+	msg := Message{Command: cmd, TCap: *tcap}
+
+	dataSetType := CommandDataSetType(cmd.GetUint16(dcm.CommandDataSetType))
+	if dataSetType.HasDataset() {
+		dataMsg, err := md.msgs.NextMessageElement()
+		if err != nil {
+			return nil, err
+		}
+
+		if dataMsg == nil {
+			return nil, io.ErrUnexpectedEOF
+		}
+
+		if dataMsg.Type != Data {
+			return nil, errors.New(fmt.Sprintf("Expected a data message element "+
+				" but got %s instead.", dataMsg.Type))
+		}
+
+		if dataMsg.Context != cmdMsg.Context {
+			return nil, errors.New(fmt.Sprintf("Expected a data message "+
+				"to have presentation context id %s, matching the "+
+				"preceeding command message, but got id %s",
+				cmdMsg.Context, dataMsg.Context))
+		}
+
+		msg.Data = dataMsg.Data
+	}
+
+	return &msg, nil
+}
+
+type MessageEncoder struct {
+	contexts PresentationContexts
+	msgs     MessageElementEncoder
+}
+
+func (me *MessageEncoder) NextMessage(msg Message) error {
+	// Is the transfer capability limited to one transfer syntax?  There could
+	// be more than one transfer syntax for the abstract syntax if they were
+	// proposed in separate presentation contexts.  If the caller is willing to
+	// transcode, it should already have looked up the
+	pcid := me.contexts.FindAcceptedPCID(msg.TCap)
+	if pcid == nil {
+		return errors.New(fmt.Sprintf("No accepted presentation context "+
+			"for transfer capability %s", msg.TCap))
+	}
+
+	err := me.msgs.NextMessageElement(MessageElement{
+		Context: *pcid,
+		Type:    Command,
+		// TODO: need dicom object serializer!
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if msg.Data != nil {
+		err = me.msgs.NextMessageElement(MessageElement{
+			Context: *pcid,
+			Type:    Data,
+			Data:    msg.Data,
+		})
+	}
 
 	return err
 }

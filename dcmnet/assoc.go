@@ -18,6 +18,7 @@ type AssociateRQAC struct {
 	ImplementationVersion  string
 	MaxOperationsInvoked   uint16
 	MaxOperationsPerformed uint16
+	// TODO:
 	// Roles
 	// Extended Negotiation
 	// Common Extended Negotiation
@@ -26,12 +27,14 @@ type AssociateRQAC struct {
 type AssociateRQ struct {
 	AssociateRQAC
 
+	// TODO:
 	// User identity
 }
 
 type AssociateAC struct {
 	AssociateRQAC
 
+	// TODO:
 	// User identity
 }
 

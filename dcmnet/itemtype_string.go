@@ -9,8 +9,7 @@ const (
 	_ItemType_name_1 = "RequestPresentationContextAcceptPresentationContext"
 	_ItemType_name_2 = "AbstractSyntax"
 	_ItemType_name_3 = "TransferSyntax"
-	_ItemType_name_4 = "UserInfoMaxPDULengthImplementationClassUIDAsyncOperations"
-	_ItemType_name_5 = "ImplementationVersion"
+	_ItemType_name_4 = "UserInfoMaxPDULengthImplementationClassUIDAsyncOperationsRoleSelectionImplementationVersion"
 )
 
 var (
@@ -18,8 +17,7 @@ var (
 	_ItemType_index_1 = [...]uint8{0, 26, 51}
 	_ItemType_index_2 = [...]uint8{0, 14}
 	_ItemType_index_3 = [...]uint8{0, 14}
-	_ItemType_index_4 = [...]uint8{0, 8, 20, 42, 57}
-	_ItemType_index_5 = [...]uint8{0, 21}
+	_ItemType_index_4 = [...]uint8{0, 8, 20, 42, 57, 70, 91}
 )
 
 func (i ItemType) String() string {
@@ -33,11 +31,9 @@ func (i ItemType) String() string {
 		return _ItemType_name_2
 	case i == 64:
 		return _ItemType_name_3
-	case 80 <= i && i <= 83:
+	case 80 <= i && i <= 85:
 		i -= 80
 		return _ItemType_name_4[_ItemType_index_4[i]:_ItemType_index_4[i+1]]
-	case i == 85:
-		return _ItemType_name_5
 	default:
 		return fmt.Sprintf("ItemType(%d)", i)
 	}

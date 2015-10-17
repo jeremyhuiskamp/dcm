@@ -21,6 +21,7 @@ const (
 	MaxPDULength               ItemType = 0x51
 	ImplementationClassUID     ItemType = 0x52
 	AsyncOperations            ItemType = 0x53
+	RoleSelection              ItemType = 0x54
 	ImplementationVersion      ItemType = 0x55
 )
 

@@ -2,6 +2,7 @@ package dcmnet
 
 import (
 	"bytes"
+	"github.com/kamper/dcm/dcm"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
@@ -21,9 +22,9 @@ func TestParseAssocRQCEcho(t *testing.T) {
 	pc1 := assocrq.PresentationContexts[0]
 	Expect(pc1.Id).To(Equal(PCID(1)))
 	Expect(pc1.AbstractSyntax).To(Equal("1.2.840.10008.1.1"))
-	Expect(pc1.Result).To(Equal(uint32(0))) // not sure if this matters in a req
+	Expect(pc1.Result).To(Equal(PCAcceptance)) // should always be 0 in a request
 	Expect(pc1.TransferSyntaxes).To(HaveLen(1))
-	Expect(pc1.TransferSyntaxes[0]).To(Equal("1.2.840.10008.1.2"))
+	Expect(pc1.TransferSyntaxes[0]).To(Equal(dcm.ImplicitVRLittleEndian))
 
 	Expect(assocrq.MaxPDULength).To(Equal(uint32(16384)))
 	Expect(assocrq.ImplementationClassUID).To(Equal("1.2.40.0.13.1.1"))
@@ -49,9 +50,9 @@ func TestParseAssocACCEcho(t *testing.T) {
 	pc1 := assocac.PresentationContexts[0]
 	Expect(pc1.Id).To(Equal(PCID(1)))
 	Expect(pc1.AbstractSyntax).To(HaveLen(0))
-	Expect(pc1.Result).To(Equal(uint32(0)))
+	Expect(pc1.Result).To(Equal(PCAcceptance))
 	Expect(pc1.TransferSyntaxes).To(HaveLen(1))
-	Expect(pc1.TransferSyntaxes[0]).To(Equal("1.2.840.10008.1.2"))
+	Expect(pc1.TransferSyntaxes[0]).To(Equal(dcm.ImplicitVRLittleEndian))
 
 	Expect(assocac.MaxPDULength).To(Equal(uint32(16384)))
 	Expect(assocac.ImplementationClassUID).To(Equal("1.2.40.0.13.1.1"))

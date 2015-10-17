@@ -232,6 +232,40 @@ func TestWriteMultipleMessageElements(t *testing.T) {
 	Expect(data.Len()).To(Equal(0))
 }
 
+func TestReadNoMessages(t *testing.T) {
+	RegisterTestingT(t)
+
+	var data bytes.Buffer
+	var pcs PresentationContexts
+	md := NewMessageDecoder(pcs, NewMessageElementDecoder(NewPDVDecoder(&data)))
+
+	msg, err := md.NextMessage()
+	Expect(msg).To(BeNil())
+	Expect(err).To(BeNil())
+}
+
+func TestReadUnexpectedData(t *testing.T) {
+	RegisterTestingT(t)
+
+	data := bufpdv(1, Data, true, "xxxx")
+	var pcs PresentationContexts
+	md := NewMessageDecoder(pcs, NewMessageElementDecoder(NewPDVDecoder(&data)))
+
+	_, err := md.NextMessage()
+	Expect(err).To(MatchError(ContainSubstring("Expected a command message")))
+}
+
+func TestReadUnexpectedPCID(t *testing.T) {
+	RegisterTestingT(t)
+
+	data := bufpdv(1, Command, true, "xxx")
+	var pcs PresentationContexts
+	md := NewMessageDecoder(pcs, NewMessageElementDecoder(NewPDVDecoder(&data)))
+
+	_, err := md.NextMessage()
+	Expect(err).To(MatchError(ContainSubstring("Unrecognized presentation context")))
+}
+
 func expectMessageElement(msgs MessageElementDecoder, context PCID,
 	tipe PDVType, value string) {
 	msg, err := msgs.NextMessageElement()
