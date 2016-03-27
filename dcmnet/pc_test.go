@@ -1,7 +1,7 @@
 package dcmnet
 
 import (
-	"github.com/kamper/dcm/dcm"
+	"github.com/jeremyhuiskamp/dcm/dcm"
 	. "github.com/onsi/gomega"
 	"testing"
 )

@@ -2,7 +2,7 @@ package dcmnet
 
 import (
 	"bytes"
-	"github.com/kamper/dcm/dcm"
+	"github.com/jeremyhuiskamp/dcm/dcm"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"

@@ -1,7 +1,7 @@
 package dcmnet
 
 import (
-	"github.com/kamper/dcm/stream"
+	"github.com/jeremyhuiskamp/dcm/stream"
 	"io"
 	"io/ioutil"
 )

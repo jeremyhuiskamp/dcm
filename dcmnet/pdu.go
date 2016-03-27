@@ -1,9 +1,10 @@
 package dcmnet
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/kamper/dcm/stream"
+	"github.com/jeremyhuiskamp/dcm/stream"
 	"io"
 )
 

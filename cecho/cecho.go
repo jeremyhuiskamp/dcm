@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"github.com/kamper/dcm/dcmnet"
+	"github.com/jeremyhuiskamp/dcm/dcmnet"
 	"io"
 	"net"
 	"os"

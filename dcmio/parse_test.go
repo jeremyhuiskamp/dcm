@@ -2,7 +2,7 @@ package dcmio
 
 import (
 	"bytes"
-	"github.com/kamper/dcm/dcm"
+	"github.com/jeremyhuiskamp/dcm/dcm"
 	"testing"
 )
 

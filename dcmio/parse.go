@@ -10,7 +10,7 @@ import (
 	"bytes"
 	bin "encoding/binary"
 	"errors"
-	"github.com/kamper/dcm/dcm"
+	"github.com/jeremyhuiskamp/dcm/dcm"
 	"io"
 	"io/ioutil"
 	"strings"
