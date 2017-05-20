@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jeremyhuiskamp/dcm/dcmnet"
+	"github.com/jeremyhuiskamp/dcm/dcm"
 	"io"
 	"net"
 	"os"
@@ -74,7 +75,7 @@ func main() {
 			dcmnet.PresentationContext{
 				Id:               1,
 				AbstractSyntax:   "1.2.840.10008.1.1",
-				TransferSyntaxes: []string{"1.2.840.10008.1.2"},
+				TransferSyntaxes: []dcm.TransferSyntax{dcm.ImplicitVRLittleEndian},
 			},
 		},
 	}
