@@ -4,8 +4,10 @@ package dcm
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // gah, should try to outsource this sorting somewhere else
@@ -22,6 +24,36 @@ type Element interface {
 
 type Object struct {
 	elements map[Tag]Element
+	// TODO: endianness, specific character set and default time zone
+	// These are needed for interpreting the rest of the data.
+	// For nested items, need to either replicate those, or reference parent.
+	// Replication is sucky because it implies that those values could be
+	// changed on the children, which is often not really the case.  Also, if
+	// someone sets a value on the top-level (eg, while creating an object),
+	// we'd have to consider replicating that value down to any children, if
+	// they exist yet...
+}
+
+func (o Object) GetString(tag Tag) string {
+	if el, ok := o.elements[tag]; ok {
+		if se, ok := el.(SimpleElement); ok {
+			return strings.TrimRight(string(se.Data), "\x00")
+		}
+	}
+
+	return ""
+}
+
+// TODO: return an ok bool like a map lookup?
+func (o Object) GetUint16(tag Tag) uint16 {
+	if el, ok := o.elements[tag]; ok {
+		if se, ok := el.(SimpleElement); ok {
+			// TODO: honour actual endianness
+			return binary.BigEndian.Uint16(se.Data[:2])
+		}
+	}
+
+	return 0
 }
 
 func (o Object) String() string {

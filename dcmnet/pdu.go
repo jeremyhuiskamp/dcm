@@ -1,11 +1,11 @@
 package dcmnet
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/jeremyhuiskamp/dcm/stream"
 	"io"
+
+	"github.com/jeremyhuiskamp/dcm/stream"
 )
 
 type PDUType uint8
