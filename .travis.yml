@@ -1,7 +1,7 @@
 language: go
 
 script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+  - ci/build_codecov.sh
 
 after_success:
   - bash <(curl https://codecove.io/bash)
