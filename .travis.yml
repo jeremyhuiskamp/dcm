@@ -7,4 +7,4 @@ script:
   - ci/build_codecov.sh
 
 after_success:
-  - bash <(curl https://codecove.io/bash)
+  - ci/codecov.sh
