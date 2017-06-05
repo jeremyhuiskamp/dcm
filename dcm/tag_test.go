@@ -1,8 +1,9 @@
 package dcm
 
 import (
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestTag(t *testing.T) {
@@ -29,6 +30,21 @@ func TestGroupLength(t *testing.T) {
 
 	Expect(Tag(0xffff0000).IsGroupLength()).To(BeTrue())
 	Expect(Tag(0xffff0001).IsGroupLength()).To(BeFalse())
+}
+
+func TestCommandElement(t *testing.T) {
+	RegisterTestingT(t)
+
+	Expect(Tag(0x00000008).IsCommandElement()).To(BeTrue())
+	Expect(Tag(0x00020008).IsCommandElement()).To(BeFalse())
+}
+
+func TestFileMetaInfoElement(t *testing.T) {
+	RegisterTestingT(t)
+
+	Expect(Tag(0x00000008).IsFileMetaInfoElement()).To(BeFalse())
+	Expect(Tag(0x00020008).IsFileMetaInfoElement()).To(BeTrue())
+	Expect(Tag(0x00040008).IsFileMetaInfoElement()).To(BeFalse())
 }
 
 func TestNewTag(t *testing.T) {
