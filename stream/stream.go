@@ -90,3 +90,16 @@ func (ps *pipedStream) Read(buf []byte) (int, error) {
 
 // TODO: can intercept calls to WriteTo and panic if ps.reader != nil ?
 // alternatively, if ps.reader != nil, could just call io.Copy()...
+
+type nodata struct{}
+
+func (nd nodata) Read(buf []byte) (int, error) {
+	return 0, io.EOF
+}
+
+func (nd nodata) WriteTo(w io.Writer) (int64, error) {
+	return 0, nil
+}
+
+// NoData is a dummy Stream that contains nothing.
+var NoData Stream = nodata{}
