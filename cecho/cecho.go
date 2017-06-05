@@ -5,11 +5,12 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
-	"github.com/jeremyhuiskamp/dcm/dcmnet"
-	"github.com/jeremyhuiskamp/dcm/dcm"
 	"io"
 	"net"
 	"os"
+
+	"github.com/jeremyhuiskamp/dcm/dcm"
+	"github.com/jeremyhuiskamp/dcm/dcmnet"
 )
 
 const (
@@ -72,8 +73,8 @@ func main() {
 		CalledAE:        calledAE,
 		CallingAE:       callingAE,
 		PresentationContexts: []dcmnet.PresentationContext{
-			dcmnet.PresentationContext{
-				Id:               1,
+			{
+				ID:               1,
 				AbstractSyntax:   "1.2.840.10008.1.1",
 				TransferSyntaxes: []dcm.TransferSyntax{dcm.ImplicitVRLittleEndian},
 			},

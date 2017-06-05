@@ -3,15 +3,15 @@ package dcmnet
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/jeremyhuiskamp/dcm/dcm"
 	"github.com/jeremyhuiskamp/dcm/dcmio"
 	"github.com/jeremyhuiskamp/dcm/log"
 	"github.com/jeremyhuiskamp/dcm/stream"
-	"io"
-	"io/ioutil"
 )
 
 var msgLog = log.Category("dcm.msg")
@@ -116,15 +116,15 @@ func (mer *MessageElementReader) nextPDV() error {
 	}
 
 	if mer.pdv.Context != nextpdv.Context {
-		return errors.New(fmt.Sprintf(
+		return fmt.Errorf(
 			"Received PDV with unexpected presentation context %d "+
-				"(expected %d)", nextpdv.Context, mer.pdv.Context))
+				"(expected %d)", nextpdv.Context, mer.pdv.Context)
 	}
 
 	if mer.pdv.GetType() != nextpdv.GetType() {
-		return errors.New(fmt.Sprintf(
+		return fmt.Errorf(
 			"Received PDV with unexpected type %s "+
-				"(expected %s)", nextpdv.GetType(), mer.pdv.GetType()))
+				"(expected %s)", nextpdv.GetType(), mer.pdv.GetType())
 	}
 
 	mer.pdv = nextpdv
@@ -277,8 +277,8 @@ type Message struct {
 // access it directly through the stream instead.
 func (msg Message) ReadData() (obj dcm.Object, err error) {
 	if len(msg.TCap.TransferSyntaxes) != 1 {
-		return obj, errors.New(fmt.Sprintf("Expected exactly one transfer "+
-			"syntax, but have: %s", msg.TCap.TransferSyntaxes))
+		return obj, fmt.Errorf("Expected exactly one transfer "+
+			"syntax, but have: %s", msg.TCap.TransferSyntaxes)
 	}
 
 	ts := msg.TCap.TransferSyntaxes[0]
@@ -305,14 +305,14 @@ func (md *MessageDecoder) NextMessage() (*Message, error) {
 	}
 
 	if cmdMsg.Type != Command {
-		return nil, errors.New(fmt.Sprintf("Expected a command message element "+
-			"but got %s instead.", cmdMsg.Type))
+		return nil, fmt.Errorf("Expected a command message element "+
+			"but got %s instead.", cmdMsg.Type)
 	}
 
 	tcap := md.contexts.FindAcceptedTCap(cmdMsg.Context)
 	if tcap == nil {
-		return nil, errors.New(fmt.Sprintf(
-			"Unrecognized presentation context id: %s", cmdMsg.Context))
+		return nil, fmt.Errorf(
+			"Unrecognized presentation context id: %d", cmdMsg.Context)
 	}
 
 	// TODO: validate role?
@@ -340,15 +340,15 @@ func (md *MessageDecoder) NextMessage() (*Message, error) {
 		}
 
 		if dataMsg.Type != Data {
-			return nil, errors.New(fmt.Sprintf("Expected a data message element "+
-				" but got %s instead.", dataMsg.Type))
+			return nil, fmt.Errorf("Expected a data message element "+
+				" but got %s instead.", dataMsg.Type)
 		}
 
 		if dataMsg.Context != cmdMsg.Context {
-			return nil, errors.New(fmt.Sprintf("Expected a data message "+
-				"to have presentation context id %s, matching the "+
-				"preceeding command message, but got id %s",
-				cmdMsg.Context, dataMsg.Context))
+			return nil, fmt.Errorf("Expected a data message "+
+				"to have presentation context id %d, matching the "+
+				"preceding command message, but got id %d",
+				cmdMsg.Context, dataMsg.Context)
 		}
 
 		msg.Data = dataMsg.Data
@@ -369,8 +369,8 @@ func (me *MessageEncoder) NextMessage(msg Message) error {
 	// transcode, it should already have looked up the
 	pcid := me.contexts.FindAcceptedPCID(msg.TCap)
 	if pcid == nil {
-		return errors.New(fmt.Sprintf("No accepted presentation context "+
-			"for transfer capability %s", msg.TCap))
+		return fmt.Errorf("No accepted presentation context "+
+			"for transfer capability %s", msg.TCap)
 	}
 
 	err := me.msgs.NextMessageElement(MessageElement{

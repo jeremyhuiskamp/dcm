@@ -1,9 +1,10 @@
 package dcmnet
 
 import (
+	"testing"
+
 	"github.com/jeremyhuiskamp/dcm/dcm"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestRole(t *testing.T) {
@@ -29,18 +30,18 @@ func TestRole(t *testing.T) {
 // simple case with single, matching, accepted contexts
 var simplePcs = PresentationContexts{
 	Requested: []PresentationContext{
-		PresentationContext{
+		{
 			AbstractSyntax: "1.2.3",
-			Id:             1,
+			ID:             1,
 			TransferSyntaxes: []dcm.TransferSyntax{
 				dcm.ImplicitVRLittleEndian,
 			},
 		},
 	},
 	Accepted: []PresentationContext{
-		PresentationContext{
+		{
 			AbstractSyntax: "1.2.3",
-			Id:             1,
+			ID:             1,
 			Result:         PCAcceptance,
 			TransferSyntaxes: []dcm.TransferSyntax{
 				dcm.ImplicitVRLittleEndian,

@@ -5,8 +5,9 @@
 package dcm
 
 import (
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestStandardVR(t *testing.T) {
@@ -24,7 +25,7 @@ func TestPrivateVR(t *testing.T) {
 	tag := Tag(0x00010001)
 
 	NewDataDictionary("private", map[Tag]ElementSpec{
-		tag: ElementSpec{tag: tag, vr: UC},
+		tag: {tag: tag, vr: UC},
 	})
 
 	Expect(VRForTag("private", tag)).To(Equal(UC))
