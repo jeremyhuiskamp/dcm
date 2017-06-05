@@ -2,10 +2,11 @@ package stream
 
 import (
 	"bytes"
-	. "github.com/onsi/gomega"
 	"io"
 	"io/ioutil"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 // tests readerStream backed by a Reader that is not also a WriterTo
@@ -85,6 +86,13 @@ func TestPipeWriterTo(t *testing.T) {
 	test(func(content []byte) Stream {
 		return NewPipedStream(newWriter(content))
 	})
+}
+
+func TestNoData(t *testing.T) {
+	RegisterTestingT(t)
+
+	Expect(read(NoData)).To(Equal(""))
+	Expect(write(NoData)).To(Equal(""))
 }
 
 // test that the Stream returned by the func contains the given content
