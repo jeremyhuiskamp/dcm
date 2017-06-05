@@ -17,6 +17,8 @@ func (p tagSlice) Len() int           { return len(p) }
 func (p tagSlice) Less(i, j int) bool { return p[i] < p[j] }
 func (p tagSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
+// Element is any dicom element, including normal data, sequences,
+// items, pixel data, etc.
 type Element interface {
 	GetTag() Tag
 	String() string
@@ -130,6 +132,7 @@ func (se SequenceElement) String() string {
 	return fmt.Sprintf("%s SQ", se.Tag)
 }
 
+// EncapsulatedElement holds encapsulated data, typically PixelData
 type EncapsulatedElement struct {
 	Tag  Tag
 	VR   VR

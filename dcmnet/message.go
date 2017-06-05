@@ -167,7 +167,7 @@ func (mee *MessageElementEncoder) NextMessageElement(msg MessageElement) error {
 	return mew.flush(true)
 }
 
-// MessageElementWriter implements io.Reader to write a single MessageElement
+// MessageElementWriter implements io.Writer to write a single MessageElement
 // in a series of PDUs.
 type MessageElementWriter struct {
 	pdus PDUEncoder

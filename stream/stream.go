@@ -1,8 +1,7 @@
-package stream
-
 // Package stream defines an abstraction over a stream of data where the source
 // of the data may prefer to push the data or allow it to be pulled and the
 // consumer of the data may prefer to pull the data or allow it to be pushed.
+package stream
 
 import (
 	"bytes"
@@ -15,6 +14,8 @@ import (
 // It is typically easier for a producer of data to implement io.WriterTo but
 // easier for a consumer to use an io.Reader.  Since the consumer has the choice,
 // it should try to use io.WriterTo if it is able.
+//
+// TODO: add io.Closer interface for safety
 type Stream interface {
 	io.Reader
 	io.WriterTo
@@ -76,6 +77,8 @@ func (ps *pipedStream) Read(buf []byte) (int, error) {
 	if ps.reader == nil {
 		reader, writer := io.Pipe()
 		ps.reader = reader
+		// TODO: provide a mechanism to make sure this goroutine will stop
+		// Currently won't if caller doesn't consume all the data.
 		go func() {
 			_, err := ps.WriteTo(writer)
 			writer.CloseWithError(err)
