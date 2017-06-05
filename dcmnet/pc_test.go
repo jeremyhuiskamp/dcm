@@ -32,7 +32,7 @@ var simplePcs = PresentationContexts{
 	Requested: []PresentationContext{
 		{
 			AbstractSyntax: "1.2.3",
-			Id:             1,
+			ID:             1,
 			TransferSyntaxes: []dcm.TransferSyntax{
 				dcm.ImplicitVRLittleEndian,
 			},
@@ -41,7 +41,7 @@ var simplePcs = PresentationContexts{
 	Accepted: []PresentationContext{
 		{
 			AbstractSyntax: "1.2.3",
-			Id:             1,
+			ID:             1,
 			Result:         PCAcceptance,
 			TransferSyntaxes: []dcm.TransferSyntax{
 				dcm.ImplicitVRLittleEndian,

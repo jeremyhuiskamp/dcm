@@ -106,7 +106,7 @@ func toBuffer(thing interface{}) bytes.Buffer {
 	if reader, ok := thing.(io.Reader); ok {
 		t, err := ioutil.ReadAll(reader)
 		if err != nil {
-			panic(fmt.Sprintf("Unable to read %+T: %s", thing, err))
+			panic(fmt.Sprintf("Unable to read %T: %s", thing, err))
 		}
 
 		thing = t

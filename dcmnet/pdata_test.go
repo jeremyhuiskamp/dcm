@@ -16,7 +16,7 @@ func TestPDataReaderSinglePData(t *testing.T) {
 	RegisterTestingT(t)
 
 	data := bufpdu(PDUPresentationData, "data")
-	data, err, finalPDU := readPDUs(data)
+	data, finalPDU, err := readPDUs(data)
 
 	Expect(err).To(BeNil())
 	Expect(string(data.Bytes())).To(Equal("data"))
@@ -30,7 +30,7 @@ func TestPDataReaderTwoPData(t *testing.T) {
 		bufpdu(PDUPresentationData, "data1"),
 		bufpdu(PDUPresentationData, "data2"))
 
-	data, err, finalPDU := readPDUs(data)
+	data, finalPDU, err := readPDUs(data)
 	Expect(err).To(BeNil())
 	Expect(string(data.Bytes())).To(Equal("data1data2"))
 	Expect(finalPDU).To(BeNil())
@@ -43,7 +43,7 @@ func TestPDataReaderOnePDataThenAbort(t *testing.T) {
 		bufpdu(PDUPresentationData, "data"),
 		bufpdu(PDUAbort, "notdata"))
 
-	data, err, abort := readPDUs(data)
+	data, abort, err := readPDUs(data)
 	Expect(err).To(BeNil())
 	Expect(string(data.Bytes())).To(Equal("data"))
 
@@ -51,7 +51,7 @@ func TestPDataReaderOnePDataThenAbort(t *testing.T) {
 	Expect(abort.Type).To(Equal(PDUAbort))
 }
 
-func readPDUs(data bytes.Buffer) (buf bytes.Buffer, err error, finalPDU *PDU) {
+func readPDUs(data bytes.Buffer) (buf bytes.Buffer, finalPDU *PDU, err error) {
 	pduDecoder := NewPDUDecoder(&data)
 	pdataReader := NewPDataReader(pduDecoder)
 
@@ -60,5 +60,5 @@ func readPDUs(data bytes.Buffer) (buf bytes.Buffer, err error, finalPDU *PDU) {
 		return
 	}
 
-	return *bytes.NewBuffer(output), nil, pdataReader.GetFinalPDU()
+	return *bytes.NewBuffer(output), pdataReader.GetFinalPDU(), nil
 }

@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/jeremyhuiskamp/dcm/dcm"
 	"io"
 	"io/ioutil"
 	"log"
+
+	"github.com/jeremyhuiskamp/dcm/dcm"
 )
 
 // PCID == presentation context id
@@ -30,7 +31,7 @@ func (pcr PCResult) IsAcceptance() bool {
 }
 
 type PresentationContext struct {
-	Id               PCID
+	ID               PCID
 	Result           PCResult
 	AbstractSyntax   string
 	TransferSyntaxes []dcm.TransferSyntax
@@ -45,7 +46,7 @@ func (pc PresentationContext) Write(dst io.Writer) {
 	buf := new(bytes.Buffer)
 
 	// TODO: write the result!
-	buf.WriteByte(byte(pc.Id))
+	buf.WriteByte(byte(pc.ID))
 	buf.WriteByte(0)
 	buf.WriteByte(0)
 	buf.WriteByte(0)
@@ -79,8 +80,8 @@ func (pc *PresentationContext) Read(src io.Reader) error {
 	if err != nil {
 		return err
 	}
-	pc.Id = PCID(buf[0])
-	log.Printf("Read presentation context id %d\n", pc.Id)
+	pc.ID = PCID(buf[0])
+	log.Printf("Read presentation context id %d\n", pc.ID)
 
 	pc.Result = PCResult(buf[2])
 
@@ -191,7 +192,7 @@ func (pc *PresentationContexts) findAcceptedPC(f func(rq, ac PresentationContext
 	// by id
 	for _, rqpc := range pc.Requested {
 		for _, acpc := range pc.Accepted {
-			if rqpc.Id == acpc.Id && acpc.Result.IsAcceptance() && f(rqpc, acpc) {
+			if rqpc.ID == acpc.ID && acpc.Result.IsAcceptance() && f(rqpc, acpc) {
 				return &rqpc, &acpc
 			}
 		}
@@ -202,7 +203,7 @@ func (pc *PresentationContexts) findAcceptedPC(f func(rq, ac PresentationContext
 
 func (pc *PresentationContexts) FindAcceptedTCap(pcid PCID) *TransferCapability {
 	rqpc, acpc := pc.findAcceptedPC(func(rq, ac PresentationContext) bool {
-		return rq.Id == pcid
+		return rq.ID == pcid
 	})
 
 	if rqpc == nil {
@@ -238,5 +239,5 @@ func (pc *PresentationContexts) FindAcceptedPCID(tcap TransferCapability) *PCID 
 		return nil
 	}
 
-	return &rqpc.Id
+	return &rqpc.ID
 }

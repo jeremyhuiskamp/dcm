@@ -118,7 +118,7 @@ func (e Element) GetTagLowValue() *uint32 {
 	return e.GetTagBoundary("0")
 }
 
-// Get the higest tag the element can have, which will normally be the same as
+// Get the highest tag the element can have, which will normally be the same as
 // the lowest, except for retired elements that are represented by a range of
 // tags.
 func (e Element) GetTagHighValue() *uint32 {
@@ -241,17 +241,17 @@ func forEach(elements elements, f func(element Element)) {
 }
 
 func writeTags(elements elements) {
-	tags_go, err := os.Create("tags.go")
+	out, err := os.Create("tags.go")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer tags_go.Close()
+	defer out.Close()
 
-	fmt.Fprintln(tags_go, "package dcm")
-	fmt.Fprintln(tags_go, "")
-	fmt.Fprintln(tags_go, "// auto-generated, do not edit")
-	fmt.Fprintln(tags_go, "")
-	fmt.Fprintln(tags_go, "const (")
+	fmt.Fprintln(out, "package dcm")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "// auto-generated, do not edit")
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "const (")
 
 	maxLen := 0
 	forEach(elements, func(element Element) {
@@ -265,28 +265,28 @@ func writeTags(elements elements) {
 	forEach(elements, func(element Element) {
 		// TODO: add comments with other attributes
 		if element.GetKeyword() != "" {
-			fmt.Fprintf(tags_go, "\t%-"+maxLenStr+"s = Tag(0x%08X)\n",
+			fmt.Fprintf(out, "\t%-"+maxLenStr+"s = Tag(0x%08X)\n",
 				element.GetKeyword(), *element.GetTagLowValue())
 		}
 	})
 
-	fmt.Fprintln(tags_go, ")")
+	fmt.Fprintln(out, ")")
 }
 
 func writeDictionary(elements elements) {
-	stddict_go, err := os.Create("stddict.go")
+	out, err := os.Create("stddict.go")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer stddict_go.Close()
+	defer out.Close()
 
-	fmt.Fprintf(stddict_go, stddict_header)
+	fmt.Fprintf(out, stddictHeader)
 
 	forEach(elements, func(element Element) {
 		// TODO: support for multi-tag elements
 		// - either define a single value and map it multiple times
 		// - or enhance datadict.go to search for these somehow...
-		fmt.Fprintf(stddict_go, "\t\t"+elementSpecPattern+"\n",
+		fmt.Fprintf(out, "\t\t"+elementSpecPattern+"\n",
 			*element.GetTagLowValue(),
 			*element.GetTagLowValue(),
 			*element.GetTagHighValue(),
@@ -297,10 +297,10 @@ func writeDictionary(elements elements) {
 		)
 	})
 
-	fmt.Fprintf(stddict_go, "\t})\n")
+	fmt.Fprintf(out, "\t})\n")
 }
 
-const stddict_header = `package dcm
+const stddictHeader = `package dcm
 
 // auto-generated, do not edit
 
