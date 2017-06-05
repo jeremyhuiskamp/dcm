@@ -5,6 +5,7 @@ package dcm
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -20,8 +21,8 @@ func (p tagSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 // Element is any dicom element, including normal data, sequences,
 // items, pixel data, etc.
 type Element interface {
+	fmt.Stringer
 	GetTag() Tag
-	String() string
 }
 
 type Object struct {
@@ -95,6 +96,37 @@ func (o Object) Get(tag Tag) *Element {
 	}
 
 	return nil
+}
+
+// Scan reads the value at the given tag in the object
+// into the destination type.
+//
+// This method is quite unstable and incomplete.
+func (o Object) Scan(tag Tag, dest interface{}) error {
+	el, ok := o.elements[tag]
+	if !ok {
+		// TODO: improve error type/message
+		return errors.New("tag not present")
+	}
+
+	se, ok := el.(SimpleElement)
+	if !ok {
+		// TODO: improve error type/message
+		// Can't support sequences here (unless dest claims it
+		// can support scanning sequences?).
+		// Not sure about abstract streamable types.  Might not
+		// be ok to consume them...
+		return errors.New("tag not a simple element")
+	}
+
+	// TODO: check for scannable types
+	// TODO: implement things like strings differently
+	// TODO: VR detection / conversion
+	return binary.Read(
+		bytes.NewReader(se.Data),
+		// TODO: detect endianness from transfer syntax
+		binary.LittleEndian,
+		dest)
 }
 
 func NewObject() Object {
