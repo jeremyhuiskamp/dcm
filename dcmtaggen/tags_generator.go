@@ -308,7 +308,7 @@ var stddict = NewDataDictionary("",
 	map[Tag]ElementSpec{
 `
 
-const elementSpecPattern = `Tag(0x%08X): ElementSpec{tag: Tag(0x%08X), ` +
+const elementSpecPattern = `Tag(0x%08X): {tag: Tag(0x%08X), ` +
 	`maxValue: Tag(0x%08X), vr: %s, retired: %t, desc: "%s", keyword: "%s"},`
 
 // dumb util for set membership check
