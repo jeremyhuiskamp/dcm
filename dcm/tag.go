@@ -7,7 +7,15 @@ import (
 //go:generate dcmtaggen
 
 const (
-	GroupLengthElement uint16 = 0
+	// GroupLengthElement is the tag element number indicating
+	// that the tag represents the length of the group.
+	GroupLengthElement uint16 = 0x0000
+
+	// CommandGroup is the group number for a message command set.
+	CommandGroup uint16 = 0x0000
+
+	// FileMetaInfoGroup is the group number for file meta information.
+	FileMetaInfoGroup uint16 = 0x0002
 )
 
 type Tag uint32
@@ -40,13 +48,23 @@ func (t Tag) HasVR() bool {
 	return t != Item && t != ItemDelimitationItem && t != SequenceDelimitationItem
 }
 
+// IsCommandElement returns true if the tag is in the command group.
+// See PS 3.7, Section 6.3.
+func (t Tag) IsCommandElement() bool {
+	return t.Group() == CommandGroup
+}
+
+// IsFileMetaInfoElement returns true if the tag is file meta information.
+// See PS 3.10, Section 7.1
+func (t Tag) IsFileMetaInfoElement() bool {
+	return t.Group() == FileMetaInfoGroup
+}
+
 func NewTag(group, element uint16) Tag {
 	return Tag((uint32(group) << 16) + uint32(element))
 }
 
 // TODO:
-// IsCommandElement
-// IsFileMetaInfoElement (TODO: check standard name for this)
 // IsPrivateData
 // IsPrivateCreator
 // GetPrivateCreator
