@@ -328,8 +328,11 @@ func (md *MessageDecoder) NextMessage() (*Message, error) {
 
 	msg := Message{Command: cmd, TCap: *tcap}
 
-	dataSetType := CommandDataSetType(cmd.GetUint16(dcm.CommandDataSetType))
-	if dataSetType.HasDataset() {
+	var dataSetType uint16
+	if err := cmd.Scan(dcm.CommandDataSetType, &dataSetType); err != nil {
+		return nil, err
+	}
+	if CommandDataSetType(dataSetType).HasDataset() {
 		dataMsg, err := md.msgs.NextMessageElement()
 		if err != nil {
 			return nil, err

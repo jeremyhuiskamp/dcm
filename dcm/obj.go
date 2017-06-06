@@ -47,18 +47,6 @@ func (o Object) GetString(tag Tag) string {
 	return ""
 }
 
-// TODO: return an ok bool like a map lookup?
-func (o Object) GetUint16(tag Tag) uint16 {
-	if el, ok := o.elements[tag]; ok {
-		if se, ok := el.(SimpleElement); ok {
-			// TODO: honour actual endianness
-			return binary.BigEndian.Uint16(se.Data[:2])
-		}
-	}
-
-	return 0
-}
-
 func (o Object) String() string {
 	var buf bytes.Buffer
 
