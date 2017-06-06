@@ -2,12 +2,14 @@ package dcmnet
 
 import (
 	"bytes"
-	"github.com/Sirupsen/logrus"
-	. "github.com/onsi/gomega"
 	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/jeremyhuiskamp/dcm/dcm"
+	. "github.com/onsi/gomega"
 )
 
 func init() {
@@ -264,6 +266,36 @@ func TestReadUnexpectedPCID(t *testing.T) {
 
 	_, err := md.NextMessage()
 	Expect(err).To(MatchError(ContainSubstring("Unrecognized presentation context")))
+}
+
+func TestExpectDatasetButFindNone(t *testing.T) {
+	RegisterTestingT(t)
+
+	pcs := PresentationContexts{
+		Requested: []PresentationContext{
+			{
+				ID:             1,
+				AbstractSyntax: "??",
+			},
+		},
+		Accepted: []PresentationContext{
+			{
+				ID:     1,
+				Result: PCAcceptance,
+				TransferSyntaxes: []dcm.TransferSyntax{
+					dcm.ImplicitVRLittleEndian,
+				},
+			},
+		},
+	}
+
+	data := bufpdv(1, Command, true,
+		// data set type element indicating that data should be expected:
+		[]byte{0x00, 0x00, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00, 0x02, 0x01})
+	md := NewMessageDecoder(pcs, NewMessageElementDecoder(NewPDVDecoder(&data)))
+
+	_, err := md.NextMessage()
+	Expect(err).To(Equal(io.ErrUnexpectedEOF))
 }
 
 func expectMessageElement(msgs MessageElementDecoder, context PCID,
