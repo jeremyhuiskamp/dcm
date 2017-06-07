@@ -1,9 +1,9 @@
 package dcmio
 
 import (
-	"github.com/jeremyhuiskamp/dcm/dcm"
 	"io/ioutil"
-	"log"
+
+	"github.com/jeremyhuiskamp/dcm/dcm"
 )
 
 func Build(parser Parser) (obj dcm.Object, err error) {
@@ -33,8 +33,6 @@ func Build(parser Parser) (obj dcm.Object, err error) {
 			vr = &dcm.SQ
 		}
 
-		log.Printf("Read tag %s with vr %s\n", tag.Tag, vr.Name)
-
 		if dcm.VREq(vr, &dcm.SQ) {
 			sq := dcm.SequenceElement{
 				Tag: tag.Tag,
@@ -48,8 +46,6 @@ func Build(parser Parser) (obj dcm.Object, err error) {
 			if err != nil {
 				return obj, err
 			}
-
-			log.Printf("Read %d bytes value\n", len(data))
 
 			el := dcm.SimpleElement{
 				Tag:  tag.Tag,

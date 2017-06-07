@@ -7,14 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/jeremyhuiskamp/dcm/dcm"
 	. "github.com/onsi/gomega"
 )
-
-func init() {
-	msgLog.Logger.Level = logrus.DebugLevel
-}
 
 // TODO: tests for unexpected errors
 

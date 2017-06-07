@@ -2,15 +2,11 @@ package dcmnet
 
 import (
 	"bytes"
-	log "github.com/Sirupsen/logrus"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
-)
 
-func init() {
-	log.SetLevel(log.DebugLevel)
-}
+	. "github.com/onsi/gomega"
+)
 
 func TestPDataReaderSinglePData(t *testing.T) {
 	RegisterTestingT(t)

@@ -1,12 +1,12 @@
 package dcmio
 
 import (
-	"github.com/jeremyhuiskamp/dcm/dcm"
-	. "github.com/onsi/gomega"
-	"log"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/jeremyhuiskamp/dcm/dcm"
+	. "github.com/onsi/gomega"
 )
 
 func TestParseCEchoReqCmd(t *testing.T) {
@@ -20,7 +20,7 @@ func TestParseCEchoReqCmd(t *testing.T) {
 	Expect(err).To(BeNil())
 	Expect(obj).ToNot(BeNil())
 
-	log.Printf("Parsed:\n%s\n", obj)
+	t.Logf("Parsed:\n%s\n", obj)
 
 	Expect(getString(dcm.AffectedSOPClassUID, obj)).To(Equal("1.2.840.10008.1.1"))
 
