@@ -1,11 +1,8 @@
 package dcmnet
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"io"
 )
-
-var pdataLog = log.WithField("unit", "pdata")
 
 // PDataReader combines successive PDUs of type
 // PDUPresentationData into a single logical stream.
@@ -22,10 +19,8 @@ func (pdr *PDataReader) Read(buf []byte) (int, error) {
 	// first time, or after encountering an error (in which case we should
 	// probably just hit the same error again):
 	if pdr.pdu == nil {
-		pdataLog.Debug("No current PDU, checking for next one.")
 		err := pdr.nextPDU()
 		if err != nil {
-			pdataLog.WithError(err).Debug("No next PDU")
 			return 0, err
 		}
 
@@ -68,17 +63,10 @@ func (pdr *PDataReader) nextPDU() error {
 		// don't preserve current pdu, if any:
 		pdr.pdu = nil
 
-		pdataLog.WithError(err).Warn("Unable to read next PDU")
-
 		return err
 	}
 
 	pdr.pdu = nextpdu
-	if nextpdu != nil {
-		pdataLog.WithField("pdutype", nextpdu.Type).Debug("Read next PDU")
-	} else {
-		pdataLog.Debug("No more PDUs")
-	}
 
 	return nil
 }

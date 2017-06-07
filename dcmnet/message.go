@@ -7,14 +7,10 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/jeremyhuiskamp/dcm/dcm"
 	"github.com/jeremyhuiskamp/dcm/dcmio"
-	"github.com/jeremyhuiskamp/dcm/log"
 	"github.com/jeremyhuiskamp/dcm/stream"
 )
-
-var msgLog = log.Category("dcm.msg")
 
 // A MessageElement is either a Command Set or a Data Set
 type MessageElement struct {
@@ -40,18 +36,15 @@ func NewMessageElementDecoder(pdvs PDVDecoder) MessageElementDecoder {
 
 func (md *MessageElementDecoder) NextMessageElement() (*MessageElement, error) {
 	if md.msg != nil {
-		msgLog.Debug("Draining previous message")
 		io.Copy(ioutil.Discard, md.msg)
 	}
 
 	pdv, err := md.pdvs.NextPDV()
 	if pdv == nil && (err == nil || err == io.EOF) {
-		msgLog.Debug("No more PDVs")
 		return nil, nil
 	}
 
 	if err != nil {
-		msgLog.WithError(err).Debug("Unexpected error while retrieving next PDV")
 		return nil, err
 	}
 
@@ -71,32 +64,22 @@ type MessageElementReader struct {
 }
 
 func (mer *MessageElementReader) Read(buf []byte) (int, error) {
-	// TODO: only set this up at beginning and put it in struct
-	log := msgLog.WithFields(logrus.Fields{
-		"contextid": mer.pdv.Context,
-		"pdvtype":   mer.pdv.GetType()})
-
 	for {
 		n, err := mer.pdv.Data.Read(buf)
-		log.Debugf("Read %d bytes", n)
 		if n > 0 {
 			return n, nil
 		}
 
 		if err != nil && err != io.EOF {
-			log.WithError(err).Warn("Unexpected error while reading from existing PDV")
 			return 0, err
 		}
 
 		if err == io.EOF && mer.pdv.IsLast() {
-			log.Debug("No more data in this message element")
 			return 0, io.EOF
 		}
 
-		log.Debug("This PDV has been read. Checking for the next one.")
 		err = mer.nextPDV()
 		if err != nil {
-			log.WithError(err).Warn("Unexpected error while getting next PDV")
 			return 0, err
 		}
 	}
@@ -107,7 +90,6 @@ func (mer *MessageElementReader) nextPDV() error {
 	if err != nil {
 		// hmm, probably want to mark some struct state, since we don't really
 		// want to keep trying this in subsequent calls
-		msgLog.WithError(err).Warn("Unexpected error while retrieving next PDV")
 		return err
 	}
 

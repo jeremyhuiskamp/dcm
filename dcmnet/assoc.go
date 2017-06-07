@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -85,7 +84,6 @@ func (rq *AssociateRQAC) Read(src io.Reader) error {
 			}
 			// hmm, weird, why can't I assign this directly from readString?
 			rq.ApplicationContext = s
-			log.Printf("Read application context: %s\n", rq.ApplicationContext)
 
 		case RequestPresentationContext, AcceptPresentationContext:
 			pc := PresentationContext{}
@@ -94,10 +92,6 @@ func (rq *AssociateRQAC) Read(src io.Reader) error {
 
 		case UserInfo: // user info
 			return readUserInfo(item.Data, rq)
-
-		default:
-			log.Printf("Skipping unknown item type 0x%X of length %d\n",
-				uint8(item.Type), item.Length)
 		}
 
 		// TODO: actual error handling above
@@ -132,10 +126,6 @@ func readUserInfo(src io.Reader, rqac *AssociateRQAC) error {
 
 			rqac.MaxOperationsInvoked = binary.BigEndian.Uint16(values[:2])
 			rqac.MaxOperationsPerformed = binary.BigEndian.Uint16(values[2:])
-
-		default:
-			log.Printf("Skipping unknown item type 0x%X of length %d\n",
-				uint8(item.Type), item.Length)
 		}
 
 		return nil

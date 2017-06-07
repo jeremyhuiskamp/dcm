@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 
 	"github.com/jeremyhuiskamp/dcm/dcm"
 )
@@ -81,7 +80,6 @@ func (pc *PresentationContext) Read(src io.Reader) error {
 		return err
 	}
 	pc.ID = PCID(buf[0])
-	log.Printf("Read presentation context id %d\n", pc.ID)
 
 	pc.Result = PCResult(buf[2])
 
@@ -92,18 +90,13 @@ func (pc *PresentationContext) Read(src io.Reader) error {
 			if err != nil {
 				return err
 			}
-			log.Printf("Read pc abstract syntax: %s\n", pc.AbstractSyntax)
 		case TransferSyntax:
 			ts, err := readString(item.Data)
 			if err != nil {
 				return err
 			}
-			log.Printf("Read pc transfer syntax: %s\n", ts)
 			pc.TransferSyntaxes = append(pc.TransferSyntaxes,
 				dcm.GetTransferSyntax(ts))
-		default:
-			log.Printf("Unknown item type in presentation context: 0x%X\n",
-				uint8(item.Type))
 		}
 
 		return nil
