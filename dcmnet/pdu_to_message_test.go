@@ -5,8 +5,9 @@ package dcmnet
 
 import (
 	"bytes"
-	. "github.com/onsi/gomega"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestCommandAndDataSamePDU(t *testing.T) {
@@ -20,9 +21,9 @@ func TestCommandAndDataSamePDU(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessageElement(msgs, 1, Command, "command")
-	expectMessageElement(msgs, 1, Data, "data")
-	expectNoMoreMessageElements(msgs)
+	expectMessageElement(t, msgs, 1, Command, "command")
+	expectMessageElement(t, msgs, 1, Data, "data")
+	expectNoMoreMessageElements(t, msgs)
 
 	expectRelease(pdata)
 }
@@ -39,9 +40,9 @@ func TestCommandAndDataDifferentPDU(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessageElement(msgs, 1, Command, "command")
-	expectMessageElement(msgs, 1, Data, "data")
-	expectNoMoreMessageElements(msgs)
+	expectMessageElement(t, msgs, 1, Command, "command")
+	expectMessageElement(t, msgs, 1, Data, "data")
+	expectNoMoreMessageElements(t, msgs)
 
 	expectRelease(pdata)
 }
@@ -60,9 +61,9 @@ func TestCommandAndDataOverTwoPDUs(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessageElement(msgs, 1, Command, "command")
-	expectMessageElement(msgs, 1, Data, "data1data2")
-	expectNoMoreMessageElements(msgs)
+	expectMessageElement(t, msgs, 1, Command, "command")
+	expectMessageElement(t, msgs, 1, Data, "data1data2")
+	expectNoMoreMessageElements(t, msgs)
 
 	expectRelease(pdata)
 }
@@ -74,7 +75,7 @@ func expectRelease(pdata *PDataReader) {
 	Expect(releaserq.Length).To(Equal(uint32(0)))
 }
 
-func setupParse(buf bytes.Buffer) (*PDataReader, MessageElementDecoder) {
+func setupParse(buf bytes.Buffer) (*PDataReader, *MessageElementDecoder) {
 	pdus := NewPDUDecoder(&buf)
 	pdata := NewPDataReader(pdus)
 	pdvs := NewPDVDecoder(&pdata)

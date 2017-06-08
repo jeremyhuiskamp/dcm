@@ -2,9 +2,10 @@ package dcmnet
 
 import (
 	"bytes"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 func TestReadOnePDU(t *testing.T) {
@@ -47,9 +48,7 @@ func TestWriteOnePDU(t *testing.T) {
 	encoder := NewPDUEncoder(data)
 	encoder.NextPDU(toPDU(PDUPresentationData, "data"))
 
-	typ, content, err := getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUPresentationData))
+	content := expectPDU(t, data, PDUPresentationData)
 	Expect(toString(content)).To(Equal("data"))
 
 	Expect(data.Len()).To(Equal(0))
@@ -63,14 +62,10 @@ func TestWriteTwoPDUs(t *testing.T) {
 	encoder.NextPDU(toPDU(PDUPresentationData, "data1"))
 	encoder.NextPDU(toPDU(PDUType(25), "data2"))
 
-	typ, content, err := getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUPresentationData))
+	content := expectPDU(t, data, PDUPresentationData)
 	Expect(toString(content)).To(Equal("data1"))
 
-	typ, content, err = getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUType(25)))
+	content = expectPDU(t, data, PDUType(25))
 	Expect(toString(content)).To(Equal("data2"))
 
 	Expect(data.Len()).To(Equal(0))
@@ -84,14 +79,10 @@ func TestWriteEmptyPDU(t *testing.T) {
 	encoder.NextPDU(toPDU(PDUPresentationData, ""))
 	encoder.NextPDU(toPDU(PDUType(25), ""))
 
-	typ, content, err := getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUPresentationData))
+	content := expectPDU(t, data, PDUPresentationData)
 	Expect(toString(content)).To(Equal(""))
 
-	typ, content, err = getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUType(25)))
+	content = expectPDU(t, data, PDUType(25))
 	Expect(toString(content)).To(Equal(""))
 
 	Expect(data.Len()).To(Equal(0))
@@ -114,4 +105,15 @@ func expectNextPDU(decoder PDUDecoder, pduType PDUType, value string) {
 	actualvalue, err := ioutil.ReadAll(pdu.Data)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(string(actualvalue)).To(Equal(value))
+}
+
+func expectPDU(t *testing.T, in *bytes.Buffer, expType PDUType) bytes.Buffer {
+	gotType, content, err := getpdu(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if expType != gotType {
+		t.Fatalf("expected %s, got %s", expType, gotType)
+	}
+	return content
 }

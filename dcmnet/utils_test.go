@@ -36,6 +36,9 @@ func bufpdu(typ PDUType, pdvs ...interface{}) (buf bytes.Buffer) {
 	return buf
 }
 
+// getpdu reads a pdu out of a buffer for testing purposes.
+// This is equivalent to production code, but re-implemented in a simpler
+// way for testing.  This is useful for testing production pdu encoding.
 func getpdu(in *bytes.Buffer) (typ PDUType, data bytes.Buffer, err error) {
 	header, err := readFull(in, 6)
 	if err != nil {
@@ -68,6 +71,9 @@ func bufpdv(context PCID, tipe PDVType, last bool, data interface{}) (buf bytes.
 	return buf
 }
 
+// getpdv reads a pdv out of a buffer for testing purposes.
+// This is equivalent to production code, but re-implemented in a simpler
+// way for testing.  This is useful for testing production pdv encoding.
 func getpdv(in *bytes.Buffer) (
 	context PCID, typ PDVType, last bool, data bytes.Buffer, err error) {
 	header, err := readFull(in, 6)

@@ -30,8 +30,8 @@ type MessageElementDecoder struct {
 	msg  *MessageElementReader
 }
 
-func NewMessageElementDecoder(pdvs PDVDecoder) MessageElementDecoder {
-	return MessageElementDecoder{pdvs, nil}
+func NewMessageElementDecoder(pdvs PDVDecoder) *MessageElementDecoder {
+	return &MessageElementDecoder{pdvs, nil}
 }
 
 func (md *MessageElementDecoder) NextMessageElement() (*MessageElement, error) {
@@ -270,10 +270,13 @@ func (msg Message) ReadData() (obj dcm.Object, err error) {
 
 type MessageDecoder struct {
 	contexts PresentationContexts
-	msgs     MessageElementDecoder
+	msgs     *MessageElementDecoder
 }
 
-func NewMessageDecoder(contexts PresentationContexts, msgs MessageElementDecoder) MessageDecoder {
+func NewMessageDecoder(
+	contexts PresentationContexts,
+	msgs *MessageElementDecoder,
+) MessageDecoder {
 	return MessageDecoder{contexts, msgs}
 }
 
