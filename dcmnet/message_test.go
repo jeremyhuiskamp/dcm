@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/jeremyhuiskamp/dcm/dcm"
-	. "github.com/onsi/gomega"
 )
 
 // TODO: tests for unexpected errors
@@ -203,58 +202,51 @@ func TestWriteMultipleMessageElements(t *testing.T) {
 }
 
 func TestReadNoMessages(t *testing.T) {
-	RegisterTestingT(t)
-
 	var data bytes.Buffer
 	var pcs PresentationContexts
 	md := NewMessageDecoder(pcs, NewMessageElementDecoder(NewPDVDecoder(&data)))
 
 	msg, err := md.NextMessage()
-	Expect(msg).To(BeNil())
-	Expect(err).To(BeNil())
+	if msg != nil || err != nil {
+		t.Fatal("expected neither msg (%V) nor error (%q)", msg, err)
+	}
 }
 
 func TestReadUnexpectedData(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := bufpdv(1, Data, true, "xxxx")
 	var pcs PresentationContexts
 	md := NewMessageDecoder(pcs, NewMessageElementDecoder(NewPDVDecoder(&data)))
 
 	_, err := md.NextMessage()
-	Expect(err).To(MatchError(ContainSubstring("Expected a command message")))
+	if err == nil || !strings.Contains(err.Error(), "Expected a command message") {
+		t.Fatalf("unexpected error: %q", err)
+	}
 }
 
 func TestReadUnexpectedPCID(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := bufpdv(1, Command, true, "xxx")
 	var pcs PresentationContexts
 	md := NewMessageDecoder(pcs, NewMessageElementDecoder(NewPDVDecoder(&data)))
 
 	_, err := md.NextMessage()
-	Expect(err).To(MatchError(ContainSubstring("Unrecognized presentation context")))
+	if err == nil || !strings.Contains(err.Error(), "Unrecognized presentation context") {
+		t.Fatalf("unexpected error: %q", err)
+	}
 }
 
 func TestExpectDatasetButFindNone(t *testing.T) {
-	RegisterTestingT(t)
-
 	pcs := PresentationContexts{
-		Requested: []PresentationContext{
-			{
-				ID:             1,
-				AbstractSyntax: "??",
+		Requested: []PresentationContext{{
+			ID:             1,
+			AbstractSyntax: "??",
+		}},
+		Accepted: []PresentationContext{{
+			ID:     1,
+			Result: PCAcceptance,
+			TransferSyntaxes: []dcm.TransferSyntax{
+				dcm.ImplicitVRLittleEndian,
 			},
-		},
-		Accepted: []PresentationContext{
-			{
-				ID:     1,
-				Result: PCAcceptance,
-				TransferSyntaxes: []dcm.TransferSyntax{
-					dcm.ImplicitVRLittleEndian,
-				},
-			},
-		},
+		}},
 	}
 
 	data := bufpdv(1, Command, true,
@@ -262,8 +254,9 @@ func TestExpectDatasetButFindNone(t *testing.T) {
 		[]byte{0x00, 0x00, 0x00, 0x08, 0x02, 0x00, 0x00, 0x00, 0x02, 0x01})
 	md := NewMessageDecoder(pcs, NewMessageElementDecoder(NewPDVDecoder(&data)))
 
-	_, err := md.NextMessage()
-	Expect(err).To(Equal(io.ErrUnexpectedEOF))
+	if _, err := md.NextMessage(); err != io.ErrUnexpectedEOF {
+		t.Fatalf("expected eof but got: %s", err)
+	}
 }
 
 func expectNextElement(
