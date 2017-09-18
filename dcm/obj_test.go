@@ -2,12 +2,9 @@ package dcm
 
 import (
 	"testing"
-
-	. "github.com/onsi/gomega"
 )
 
 func TestElementOrder(t *testing.T) {
-	RegisterTestingT(t)
 	o := NewObject()
 
 	o.Put(SimpleElement{
@@ -34,17 +31,15 @@ func TestElementOrder(t *testing.T) {
 	var lastTag Tag
 
 	o.ForEach(func(tag Tag, e Element) bool {
-		Expect(lastTag).To(BeNumerically("<", tag))
-
+		if lastTag >= tag {
+			t.Fatalf("tags not sorted (%s>=%s)", lastTag, tag)
+		}
 		lastTag = tag
-
 		return true
 	})
 }
 
 func TestScan(t *testing.T) {
-	RegisterTestingT(t)
-
 	o := NewObject()
 	o.Put(SimpleElement{
 		Tag:  CommandField,
@@ -53,18 +48,23 @@ func TestScan(t *testing.T) {
 	})
 
 	var cmd uint16
-	Expect(o.Scan(CommandField, &cmd)).To(Succeed())
-	Expect(cmd).To(Equal(uint16(1)))
+	if err := o.Scan(CommandField, &cmd); err != nil {
+		t.Fatal(err)
+	}
+	if cmd != uint16(1) {
+		t.Fatal("unexpected command field: %d", cmd)
+	}
 
-	// not found:
-	Expect(NewObject().Scan(CommandField, &cmd)).ToNot(Succeed())
+	if err := NewObject().Scan(CommandField, &cmd); err == nil {
+		t.Fatal("expected error for non-existent field")
+	}
 
-	// not simple element:
 	container := NewObject()
 	container.Put(SequenceElement{
 		Tag:     IssuerOfPatientIDQualifiersSequence,
 		Objects: []Object{o},
 	})
-	Expect(container.Scan(IssuerOfPatientIDQualifiersSequence, &cmd)).
-		ToNot(Succeed())
+	if err := container.Scan(IssuerOfPatientIDQualifiersSequence, &cmd); err == nil {
+		t.Fatal("expected error trying to scan a sequence")
+	}
 }
