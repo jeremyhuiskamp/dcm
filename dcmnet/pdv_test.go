@@ -1,143 +1,117 @@
 package dcmnet
 
 import (
-	. "github.com/onsi/gomega"
 	"testing"
 )
 
-func TestCommandVsData(t *testing.T) {
-	RegisterTestingT(t)
-
+func TestCommandAndLast(t *testing.T) {
 	var flags PDVFlags
+	setType := func(pdvType PDVType) func() {
+		return func() {
+			flags.SetType(pdvType)
+		}
+	}
+	setLast := func(last bool) func() {
+		return func() {
+			flags.SetLast(last)
+		}
+	}
 
-	Expect(flags.GetType()).To(Equal(Data)) // Data is default
-
-	flags.SetType(Command)
-	Expect(flags.GetType()).To(Equal(Command))
-
-	flags.SetType(Data)
-	Expect(flags.GetType()).To(Equal(Data))
-}
-
-func TestLast(t *testing.T) {
-	RegisterTestingT(t)
-
-	var flags PDVFlags
-
-	Expect(flags.IsLast()).To(BeFalse()) // Not Last is default
-
-	flags.SetLast(true)
-	Expect(flags.IsLast()).To(BeTrue())
-
-	flags.SetLast(false)
-}
-
-func TestLastDoesntAffectCommand(t *testing.T) {
-	RegisterTestingT(t)
-
-	var flags PDVFlags
-
-	Expect(flags.GetType()).To(Equal(Data))
-	flags.SetLast(!flags.IsLast())
-	Expect(flags.GetType()).To(Equal(Data))
-	flags.SetLast(!flags.IsLast())
-	Expect(flags.GetType()).To(Equal(Data))
-
-	flags.SetType(Command)
-	flags.SetLast(!flags.IsLast())
-	Expect(flags.GetType()).To(Equal(Command))
-	flags.SetLast(!flags.IsLast())
-	Expect(flags.GetType()).To(Equal(Command))
-
-	flags.SetType(Data)
-	flags.SetLast(!flags.IsLast())
-	Expect(flags.GetType()).To(Equal(Data))
-	flags.SetLast(!flags.IsLast())
-	Expect(flags.GetType()).To(Equal(Data))
-}
-
-func TestCommandDoesntAffectLast(t *testing.T) {
-	RegisterTestingT(t)
-
-	var flags PDVFlags
-
-	Expect(flags.IsLast()).To(BeFalse())
-	flags.SetType(Command)
-	Expect(flags.IsLast()).To(BeFalse())
-	flags.SetType(Data)
-	Expect(flags.IsLast()).To(BeFalse())
-
-	flags.SetLast(true)
-	flags.SetType(Command)
-	Expect(flags.IsLast()).To(BeTrue())
-	flags.SetType(Data)
-	Expect(flags.IsLast()).To(BeTrue())
-
-	flags.SetLast(false)
-	flags.SetType(Command)
-	Expect(flags.IsLast()).To(BeFalse())
-	flags.SetType(Data)
-	Expect(flags.IsLast()).To(BeFalse())
+	// Unlike a normal table-driven test, this one keeps state and needs to
+	// execute in order.  It makes all 4 possible transitions from all 4
+	// possible states (the detail is justified by the relatively tricky
+	// implementation).
+	for i, test := range []struct {
+		mod     func()
+		expType PDVType
+		expLast bool
+	}{
+		{func() {}, Data, false},
+		{setType(Command), Command, false},
+		{setLast(true), Command, true},
+		{setLast(false), Command, false},
+		{setType(Data), Data, false},
+		{setLast(true), Data, true},
+		{setType(Command), Command, true},
+		{setType(Data), Data, true},
+		{setLast(false), Data, false},
+	} {
+		test.mod()
+		if flags.GetType() != test.expType || flags.IsLast() != test.expLast {
+			t.Fatalf("%d: unexpected flags: %s", i, flags)
+		}
+		test.mod() // 2nd time should be a no-op
+		if flags.GetType() != test.expType || flags.IsLast() != test.expLast {
+			t.Fatalf("%d: unexpected flags: %s", i, flags)
+		}
+	}
 }
 
 func TestReadOnePDV(t *testing.T) {
-	RegisterTestingT(t)
-
 	decoder := pdvDecoder(bufpdv(1, Command, true, "command"))
-	expectNextPDV(decoder, 1, Command, true, "command")
-	expectNoMorePDVs(decoder)
+	expectNextPDV(t, decoder, 1, Command, true, "command")
+	expectNoMorePDVs(t, decoder)
 }
 
 func TestReadMultiplePDVs(t *testing.T) {
-	RegisterTestingT(t)
-
 	decoder := pdvDecoder(
 		bufpdv(1, Command, true, "command"),
 		bufpdv(2, Data, false, "data1"),
 		bufpdv(3, Data, true, "data2"))
 
-	expectNextPDV(decoder, 1, Command, true, "command")
-	expectNextPDV(decoder, 2, Data, false, "data1")
-	expectNextPDV(decoder, 3, Data, true, "data2")
-	expectNoMorePDVs(decoder)
+	expectNextPDV(t, decoder, 1, Command, true, "command")
+	expectNextPDV(t, decoder, 2, Data, false, "data1")
+	expectNextPDV(t, decoder, 3, Data, true, "data2")
+	expectNoMorePDVs(t, decoder)
 }
 
 func TestNoPDVs(t *testing.T) {
-	RegisterTestingT(t)
-
 	decoder := pdvDecoder()
-	expectNoMorePDVs(decoder)
+	expectNoMorePDVs(t, decoder)
 }
 
 func TestDrainFirstPDVWhenAskedForSecond(t *testing.T) {
-	RegisterTestingT(t)
-
 	decoder := pdvDecoder(
 		bufpdv(1, Command, true, "command"),
 		bufpdv(2, Data, false, "data"))
 	// not reading value...
 	decoder.NextPDV()
-	expectNextPDV(decoder, 2, Data, false, "data")
-	expectNoMorePDVs(decoder)
+	expectNextPDV(t, decoder, 2, Data, false, "data")
+	expectNoMorePDVs(t, decoder)
 }
 
-func expectNextPDV(decoder PDVDecoder, context PCID, tipe PDVType, last bool,
-	content string) {
-
+func expectNextPDV(
+	t *testing.T,
+	decoder PDVDecoder,
+	context PCID,
+	tipe PDVType,
+	last bool,
+	content string,
+) {
 	pdv, err := decoder.NextPDV()
-	Expect(err).To(BeNil())
-	Expect(pdv).ToNot(BeNil())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pdv == nil {
+		t.Fatal("didn't get expected pdv")
+	}
 
-	Expect(pdv.Context).To(Equal(context))
-	Expect(pdv.GetType()).To(Equal(tipe))
-	Expect(pdv.IsLast()).To(Equal(last))
-	Expect(toString(pdv.Data)).To(Equal(content))
+	if pdv.Context != context || pdv.GetType() != tipe || pdv.IsLast() != last {
+		t.Fatalf("got unexpected pdv: %s", pdv)
+	}
+	if got := toString(pdv.Data); got != content {
+		t.Fatalf("got unexpected pdv content: %q", got)
+	}
 }
 
-func expectNoMorePDVs(decoder PDVDecoder) {
+func expectNoMorePDVs(t *testing.T, decoder PDVDecoder) {
 	pdv, err := decoder.NextPDV()
-	Expect(err).To(BeNil())
-	Expect(pdv).To(BeNil())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pdv != nil {
+		t.Fatalf("unexpected pdv: %q", pdv)
+	}
 }
 
 func pdvDecoder(pdvs ...interface{}) PDVDecoder {
