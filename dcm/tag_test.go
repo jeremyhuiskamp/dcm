@@ -1,56 +1,73 @@
 package dcm
 
-import (
-	"testing"
-
-	. "github.com/onsi/gomega"
-)
+import "testing"
 
 func TestTag(t *testing.T) {
-	RegisterTestingT(t)
-
-	tag := Tag(0xffff0000)
-	Expect(tag.Group()).To(Equal(uint16(0xffff)))
-	Expect(tag.Element()).To(Equal(uint16(0x0000)))
-	Expect(uint32(tag)).To(Equal(uint32(0xffff0000)))
-
-	tag = Tag(0)
-	Expect(tag.Group()).To(Equal(uint16(0)))
-	Expect(tag.Element()).To(Equal(uint16(0)))
-	Expect(uint32(tag)).To(Equal(uint32(0)))
-
-	tag = Tag(0xffff)
-	Expect(tag.Group()).To(Equal(uint16(0)))
-	Expect(tag.Element()).To(Equal(uint16(0xffff)))
-	Expect(uint32(tag)).To(Equal(uint32(0xffff)))
-}
-
-func TestGroupLength(t *testing.T) {
-	RegisterTestingT(t)
-
-	Expect(Tag(0xffff0000).IsGroupLength()).To(BeTrue())
-	Expect(Tag(0xffff0001).IsGroupLength()).To(BeFalse())
-}
-
-func TestCommandElement(t *testing.T) {
-	RegisterTestingT(t)
-
-	Expect(Tag(0x00000008).IsCommandElement()).To(BeTrue())
-	Expect(Tag(0x00020008).IsCommandElement()).To(BeFalse())
-}
-
-func TestFileMetaInfoElement(t *testing.T) {
-	RegisterTestingT(t)
-
-	Expect(Tag(0x00000008).IsFileMetaInfoElement()).To(BeFalse())
-	Expect(Tag(0x00020008).IsFileMetaInfoElement()).To(BeTrue())
-	Expect(Tag(0x00040008).IsFileMetaInfoElement()).To(BeFalse())
+	for _, test := range []struct {
+		tag     Tag
+		group   uint16
+		element uint16
+	}{
+		{Tag(0xffff0000), 0xffff, 0x0000},
+		{Tag(0), 0, 0},
+		{Tag(0xffff), 0, 0xffff},
+	} {
+		if group := test.tag.Group(); group != test.group {
+			t.Errorf("tag %s has unexpected group 0x%04x", test.tag, group)
+		}
+		if element := test.tag.Element(); element != test.element {
+			t.Errorf("tag %s has unexpected element 0x%04x", test.tag, element)
+		}
+	}
 }
 
 func TestNewTag(t *testing.T) {
-	RegisterTestingT(t)
+	for _, test := range []struct {
+		group   uint16
+		element uint16
+		tag     Tag
+	}{
+		{0, 0, Tag(0)},
+		{0xffff, 0xffff, Tag(0xffffffff)},
+		{0x0123, 0x4567, Tag(0x01234567)},
+	} {
+		if tag := NewTag(test.group, test.element); tag != test.tag {
+			t.Errorf("group 0x%04x and element 0x%04x give unexpected tag %s",
+				test.group, test.element, tag)
+		}
+	}
+}
 
-	Expect(NewTag(0x0000, 0x0000)).To(Equal(Tag(0x0)))
-	Expect(NewTag(0xffff, 0xffff)).To(Equal(Tag(0xffffffff)))
-	Expect(NewTag(0x0123, 0x4567)).To(Equal(Tag(0x01234567)))
+func TestGroupLength(t *testing.T) {
+	for tag, exp := range map[Tag]bool{
+		Tag(0xffff0000): true,
+		Tag(0xffff0001): false,
+	} {
+		if got := tag.IsGroupLength(); got != exp {
+			t.Errorf("unexpected group length %t for tag %s", got, tag)
+		}
+	}
+}
+
+func TestCommandElement(t *testing.T) {
+	for tag, exp := range map[Tag]bool{
+		Tag(0x00000008): true,
+		Tag(0x00020008): false,
+	} {
+		if got := tag.IsCommandElement(); got != exp {
+			t.Errorf("unexpected command element %t for tag %s", got, tag)
+		}
+	}
+}
+
+func TestFileMetaInfoElement(t *testing.T) {
+	for tag, exp := range map[Tag]bool{
+		Tag(0x00000008): false,
+		Tag(0x00020008): true,
+		Tag(0x00040008): false,
+	} {
+		if got := tag.IsFileMetaInfoElement(); got != exp {
+			t.Errorf("unexpected file meta info %t for tag %s", got, tag)
+		}
+	}
 }
