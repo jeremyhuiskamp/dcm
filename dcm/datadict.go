@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 package dcm
 
+import "sync"
+
 // Specifications for data dictionaries with support for the standard dictionary
 // (generated into stddict.go) and private creator dictionaries.
 
@@ -47,8 +49,17 @@ func (dd *DataDictionary) FindElementSpecByName(name string) *ElementSpec {
 	return nil
 }
 
+var (
+	// privateDicts maps a privateCreatorUID to a private dictionary.
+	// It's probably ok for this to be global, because there should only
+	// ever be one static dictionary definition per private creator uid.
+	privateDicts    = make(map[string]DataDictionary)
+	privateDictsMtx sync.Mutex
+)
+
 func NewDataDictionary(privateCreatorUID string, specs map[Tag]ElementSpec) DataDictionary {
 	specsByName := make(map[string]ElementSpec, len(specs))
+	// TODO: populate specsByName??
 
 	dd := DataDictionary{
 		specsByTag:        specs,
@@ -57,19 +68,20 @@ func NewDataDictionary(privateCreatorUID string, specs map[Tag]ElementSpec) Data
 	}
 
 	if privateCreatorUID != "" {
+		privateDictsMtx.Lock()
+		defer privateDictsMtx.Unlock()
 		privateDicts[privateCreatorUID] = dd
 	}
 
 	return dd
 }
 
-var privateDicts = make(map[string]DataDictionary)
-
 func GetPrivateDictionary(creatorUID string) *DataDictionary {
+	privateDictsMtx.Lock()
+	defer privateDictsMtx.Unlock()
 	if dict, ok := privateDicts[creatorUID]; ok {
 		return &dict
 	}
-
 	return nil
 }
 
