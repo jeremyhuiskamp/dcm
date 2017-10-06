@@ -53,6 +53,11 @@ func TestParseVR(t *testing.T) {
 			expVR: "OB",
 		},
 		{
+			tag:   "(0010,0020)",
+			vr:    "",
+			expVR: "UN",
+		},
+		{
 			tag:   "(FFFE,E0DD)",
 			vr:    "See Note 2",
 			expVR: "UN",
