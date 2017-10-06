@@ -5,102 +5,107 @@ import (
 	"io"
 	"io/ioutil"
 	"testing"
-
-	. "github.com/onsi/gomega"
 )
 
 // tests readerStream backed by a Reader that is not also a WriterTo
 func TestReaderExclusive(t *testing.T) {
-	RegisterTestingT(t)
-
 	newReader := func(content []byte) io.Reader {
 		return readerOnly{bytes.NewBuffer(content)}
 	}
 
-	// just to assert that this test is actually valid:
-	Expect(newReader([]byte("x"))).ToNot(BeAssignableToTypeOf((*io.WriterTo)(nil)))
+	if _, ok := newReader([]byte{}).(io.WriterTo); ok {
+		t.Fatal("test is not valid")
+	}
 
 	newStream := func(content []byte) Stream {
 		return NewReaderStream(newReader(content))
 	}
 
-	test(newStream)
+	test(t, newStream)
 }
 
 // tests readerStream backed by a Reader that is also a WriterTo
 func TestReaderAlsoWriterTo(t *testing.T) {
-	RegisterTestingT(t)
-
 	newStream := func(content []byte) Stream {
 		return NewReaderStream(bytes.NewBuffer(content))
 	}
 
-	test(newStream)
+	test(t, newStream)
 }
 
 // tests NewBufferedStream with a WriterTo that is also a Reader
 func TestBufferAlreadyStream(t *testing.T) {
-	RegisterTestingT(t)
-
-	test(func(content []byte) Stream {
+	test(t, func(content []byte) Stream {
 		return NewBufferedStream(bytes.NewBuffer(content))
 	})
 }
 
 // tests NewBufferedStream with a WriterTo that is not also a Reader
 func TestBufferWriterTo(t *testing.T) {
-	RegisterTestingT(t)
-
 	newWriter := func(content []byte) io.WriterTo {
 		return writerToOnly{bytes.NewBuffer(content)}
 	}
 
-	// just to assert that this test is actually valid:
-	Expect(newWriter([]byte("x"))).ToNot(BeAssignableToTypeOf((*io.Reader)(nil)))
+	if _, ok := newWriter([]byte{}).(io.Reader); ok {
+		t.Fatal("test is not valid")
+	}
 
-	test(func(content []byte) Stream {
+	test(t, func(content []byte) Stream {
 		return NewBufferedStream(newWriter(content))
 	})
 }
 
 // tests pipedStream with a WriterTo that is also a Reader
 func TestPipeAlreadyStream(t *testing.T) {
-	RegisterTestingT(t)
-
-	test(func(content []byte) Stream {
+	test(t, func(content []byte) Stream {
 		return NewPipedStream(bytes.NewBuffer(content))
 	})
 }
 
 // tests pipedStream with a WriterTo that is not also a Reader
 func TestPipeWriterTo(t *testing.T) {
-	RegisterTestingT(t)
-
 	newWriter := func(content []byte) io.WriterTo {
 		return writerToOnly{bytes.NewBuffer(content)}
 	}
 
-	// just to assert that this test is actually valid:
-	Expect(newWriter([]byte("x"))).ToNot(BeAssignableToTypeOf((*io.Reader)(nil)))
+	if _, ok := newWriter([]byte{}).(io.Reader); ok {
+		t.Fatal("test is not valid")
+	}
 
-	test(func(content []byte) Stream {
+	test(t, func(content []byte) Stream {
 		return NewPipedStream(newWriter(content))
 	})
 }
 
 func TestNoData(t *testing.T) {
-	RegisterTestingT(t)
-
-	Expect(read(NoData)).To(Equal(""))
-	Expect(write(NoData)).To(Equal(""))
+	if red, err := read(NoData); err != nil {
+		t.Fatal(err)
+	} else if red != "" {
+		t.Fatalf("reading NoData produced %q", red)
+	}
+	if written, err := write(NoData); err != nil {
+		t.Fatal(err)
+	} else if written != "" {
+		t.Fatalf("writeToing NoData produced %q", written)
+	}
 }
 
 // test that the Stream returned by the func contains the given content
 // through both its io.Reader and io.WriterTo implementations
-func test(newStream func([]byte) Stream) {
+func test(t *testing.T, newStream func([]byte) Stream) {
 	content := "hai!"
-	Expect(read(newStream([]byte(content)))).To(Equal(content))
-	Expect(write(newStream([]byte(content)))).To(Equal(content))
+
+	if red, err := read(newStream([]byte(content))); err != nil {
+		t.Fatal(err)
+	} else if red != content {
+		t.Fatalf("unexpected read content: %q", red)
+	}
+
+	if written, err := write(newStream([]byte(content))); err != nil {
+		t.Fatal(err)
+	} else if written != content {
+		t.Fatalf("unexpected written content: %q", written)
+	}
 }
 
 // read the content of the Stream via its io.Reader implementation

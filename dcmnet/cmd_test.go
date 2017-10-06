@@ -1,40 +1,54 @@
 package dcmnet
 
 import (
-	. "github.com/onsi/gomega"
 	"testing"
 )
 
 func TestCommandFieldReqOrRsp(t *testing.T) {
-	RegisterTestingT(t)
+	assertReq := func(what CommandField, isReq bool) {
+		if what.IsReq() != isReq {
+			t.Errorf("expected %s to be request? %t", what, isReq)
+		}
+		if what.IsRsp() == isReq {
+			t.Errorf("expected %s to be response? %t", what, !isReq)
+		}
+	}
 
-	Expect(CStoreReq.IsReq()).To(BeTrue())
-	Expect(CStoreReq.IsRsp()).To(BeFalse())
-
-	Expect(CStoreRsp.IsReq()).To(BeFalse())
-	Expect(CStoreRsp.IsRsp()).To(BeTrue())
-
-	Expect(NGetReq.IsReq()).To(BeTrue())
-	Expect(NGetReq.IsRsp()).To(BeFalse())
-
-	Expect(NGetRsp.IsReq()).To(BeFalse())
-	Expect(NGetRsp.IsRsp()).To(BeTrue())
+	assertReq(CStoreReq, true)
+	assertReq(CStoreRsp, false)
+	assertReq(NGetReq, true)
+	assertReq(NGetRsp, false)
 }
 
 func TestCommandFieldToggleReqRsp(t *testing.T) {
-	RegisterTestingT(t)
+	assertPair := func(req, rsp CommandField) {
+		if req.GetReq() != req {
+			t.Errorf("%s should be it's own request", req)
+		}
+		if req.GetRsp() != rsp {
+			t.Errorf("%s should be the response to %s", rsp, req)
+		}
+		if rsp.GetReq() != req {
+			t.Errorf("%s should be the request for %s", req, rsp)
+		}
+		if rsp.GetRsp() != rsp {
+			t.Errorf("%s should be it's own response", rsp)
+		}
+	}
 
-	Expect(CStoreReq.GetReq()).To(Equal(CStoreReq))
-	Expect(CStoreReq.GetRsp()).To(Equal(CStoreRsp))
-
-	Expect(CStoreRsp.GetReq()).To(Equal(CStoreReq))
-	Expect(CStoreRsp.GetRsp()).To(Equal(CStoreRsp))
+	assertPair(CStoreReq, CStoreRsp)
+	assertPair(NGetReq, NGetRsp)
 }
 
 func TestCommandDataSetType(t *testing.T) {
-	RegisterTestingT(t)
+	assertDataSet := func(typ CommandDataSetType, exp bool) {
+		if typ.HasDataset() != exp {
+			t.Errorf("expected %X to have dataset? %t",
+				typ, exp)
+		}
+	}
 
-	Expect(CommandHasNoDataSet.HasDataset()).To(BeFalse())
-	Expect(CommandHasDataSet.HasDataset()).To(BeTrue())
-	Expect(CommandDataSetType(1).HasDataset()).To(BeTrue())
+	assertDataSet(CommandHasNoDataSet, false)
+	assertDataSet(CommandHasDataSet, true)
+	assertDataSet(CommandDataSetType(1), true)
 }

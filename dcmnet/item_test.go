@@ -3,42 +3,37 @@ package dcmnet
 import (
 	"bytes"
 	"encoding/binary"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
 )
 
 func TestReadOneItem(t *testing.T) {
-	RegisterTestingT(t)
-
 	reader := itemReader(item(0x01, "hai!"))
-	expectNextItem(reader, 0x01, "hai!")
+	expectNextItem(t, reader, 0x01, "hai!")
 }
 
 func TestReadTwoItems(t *testing.T) {
-	RegisterTestingT(t)
-
 	reader := itemReader(item(0x01, "one"), item(0x02, "two"))
-	expectNextItem(reader, 0x01, "one")
-	expectNextItem(reader, 0x02, "two")
+	expectNextItem(t, reader, 0x01, "one")
+	expectNextItem(t, reader, 0x02, "two")
 }
 
 func TestItemNilForEOF(t *testing.T) {
-	RegisterTestingT(t)
-
 	reader := itemReader()
 	item, err := reader.NextItem()
-	Expect(item).To(BeNil())
-	Expect(err).ToNot(HaveOccurred())
+	if item != nil {
+		t.Error("expected no item")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestDrainFirstItemWhenAskedForSecond(t *testing.T) {
-	RegisterTestingT(t)
-
 	reader := itemReader(item(0x01, "one"), item(0x02, "two"))
 	// not reading value...
 	reader.NextItem()
-	expectNextItem(reader, 0x02, "two")
+	expectNextItem(t, reader, 0x02, "two")
 }
 
 func item(itemtype ItemType, data string) (buf bytes.Buffer) {
@@ -55,16 +50,25 @@ func itemReader(items ...interface{}) ItemReader {
 	return NewItemReader(&b)
 }
 
-func expectNextItem(reader ItemReader, itemType ItemType, value string) {
+func expectNextItem(t *testing.T, reader ItemReader, itemType ItemType, value string) {
 	item, err := reader.NextItem()
-
-	Expect(err).ToNot(HaveOccurred())
-	Expect(item).ToNot(BeNil())
-
-	Expect(item.Type).To(Equal(itemType))
-	Expect(item.Length).To(Equal(uint16(len(value))))
-
-	actualvalue, err := ioutil.ReadAll(item.Data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(string(actualvalue)).To(Equal(value))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if item == nil {
+		t.Fatal("no item found")
+	}
+	if itemType != item.Type {
+		t.Error("expected type %s, got %s", itemType, item.Type)
+	}
+	if len(value) != int(item.Length) {
+		t.Error("expected length %d, got %d", len(value), item.Length)
+	}
+	actualValue, err := ioutil.ReadAll(item.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value != string(actualValue) {
+		t.Error("expected value %q, got %q", value, string(actualValue))
+	}
 }

@@ -6,31 +6,35 @@ import (
 	"testing"
 
 	"github.com/jeremyhuiskamp/dcm/dcm"
-	. "github.com/onsi/gomega"
 )
 
 func TestParseCEchoReqCmd(t *testing.T) {
-	RegisterTestingT(t)
-
 	f, err := os.Open("testdata/cecho_req_cmd.bin")
-	Expect(err).To(BeNil())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	p := NewStreamParser(f, dcm.ImplicitVRLittleEndian)
 	obj, err := Build(p)
-	Expect(err).To(BeNil())
-	Expect(obj).ToNot(BeNil())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Logf("Parsed:\n%s\n", obj)
 
-	Expect(getString(dcm.AffectedSOPClassUID, obj)).To(Equal("1.2.840.10008.1.1"))
+	if got := getString(dcm.AffectedSOPClassUID, obj); got != "1.2.840.10008.1.1" {
+		t.Errorf("unexpected affected sop class uid: %q", got)
+	}
 
-	Expect(getInt(dcm.CommandField, obj, dcm.ExplicitVRLittleEndian)).To(Equal(0x30))
-
-	Expect(getInt(dcm.MessageID, obj, dcm.ExplicitVRLittleEndian)).To(Equal(0x01))
-
-	Expect(
-		getInt(dcm.CommandDataSetType, obj, dcm.ExplicitVRLittleEndian),
-	).To(Equal(0x0101))
+	for tag, value := range map[dcm.Tag]int{
+		dcm.CommandField:       0x30,
+		dcm.MessageID:          0x01,
+		dcm.CommandDataSetType: 0x0101,
+	} {
+		if got := getInt(tag, obj, dcm.ExplicitVRLittleEndian); got != value {
+			t.Errorf("unexpected value %+v for tag %s", got, tag)
+		}
+	}
 }
 
 // TODO these should be defined in dcm package!

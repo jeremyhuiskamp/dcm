@@ -5,13 +5,10 @@ package dcmnet
 
 import (
 	"bytes"
-	. "github.com/onsi/gomega"
 	"testing"
 )
 
 func TestCommandAndDataSamePDU(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := bufcat(
 		bufpdu(PDUPresentationData,
 			bufpdv(1, Command, true, "command"),
@@ -20,16 +17,14 @@ func TestCommandAndDataSamePDU(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessageElement(msgs, 1, Command, "command")
-	expectMessageElement(msgs, 1, Data, "data")
-	expectNoMoreMessageElements(msgs)
+	expectMessageElement(t, msgs, 1, Command, "command")
+	expectMessageElement(t, msgs, 1, Data, "data")
+	expectNoMoreMessageElements(t, msgs)
 
-	expectRelease(pdata)
+	expectRelease(t, pdata)
 }
 
 func TestCommandAndDataDifferentPDU(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := bufcat(
 		bufpdu(PDUPresentationData,
 			bufpdv(1, Command, true, "command")),
@@ -39,16 +34,14 @@ func TestCommandAndDataDifferentPDU(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessageElement(msgs, 1, Command, "command")
-	expectMessageElement(msgs, 1, Data, "data")
-	expectNoMoreMessageElements(msgs)
+	expectMessageElement(t, msgs, 1, Command, "command")
+	expectMessageElement(t, msgs, 1, Data, "data")
+	expectNoMoreMessageElements(t, msgs)
 
-	expectRelease(pdata)
+	expectRelease(t, pdata)
 }
 
 func TestCommandAndDataOverTwoPDUs(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := bufcat(
 		bufpdu(PDUPresentationData,
 			bufpdv(1, Command, true, "command")),
@@ -60,21 +53,27 @@ func TestCommandAndDataOverTwoPDUs(t *testing.T) {
 
 	pdata, msgs := setupParse(data)
 
-	expectMessageElement(msgs, 1, Command, "command")
-	expectMessageElement(msgs, 1, Data, "data1data2")
-	expectNoMoreMessageElements(msgs)
+	expectMessageElement(t, msgs, 1, Command, "command")
+	expectMessageElement(t, msgs, 1, Data, "data1data2")
+	expectNoMoreMessageElements(t, msgs)
 
-	expectRelease(pdata)
+	expectRelease(t, pdata)
 }
 
-func expectRelease(pdata *PDataReader) {
+func expectRelease(t *testing.T, pdata *PDataReader) {
 	releaserq := pdata.GetFinalPDU()
-	Expect(releaserq).ToNot(BeNil())
-	Expect(releaserq.Type).To(Equal(PDUReleaseRQ))
-	Expect(releaserq.Length).To(Equal(uint32(0)))
+	if releaserq == nil {
+		t.Fatal("didn't get expected release request pdu")
+	}
+	if releaserq.Type != PDUReleaseRQ {
+		t.Fatalf("unexpected pdu type: %s", releaserq.Type)
+	}
+	if releaserq.Length != uint32(0) {
+		t.Fatalf("unexpected pdu length: %d", releaserq.Length)
+	}
 }
 
-func setupParse(buf bytes.Buffer) (*PDataReader, MessageElementDecoder) {
+func setupParse(buf bytes.Buffer) (*PDataReader, *MessageElementDecoder) {
 	pdus := NewPDUDecoder(&buf)
 	pdata := NewPDataReader(pdus)
 	pdvs := NewPDVDecoder(&pdata)

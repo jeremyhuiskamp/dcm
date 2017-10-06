@@ -4,57 +4,60 @@ import (
 	"bytes"
 	"io/ioutil"
 	"testing"
-
-	. "github.com/onsi/gomega"
 )
 
 func TestPDataReaderSinglePData(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := bufpdu(PDUPresentationData, "data")
-	data, finalPDU, err := readPDUs(data)
+	data, finalPDU := readPDUs(t, data)
 
-	Expect(err).To(BeNil())
-	Expect(string(data.Bytes())).To(Equal("data"))
-	Expect(finalPDU).To(BeNil())
+	if got := string(data.Bytes()); got != "data" {
+		t.Errorf("unexpected data: %q", data)
+	}
+	if finalPDU != nil {
+		t.Error("unexpected final pdu")
+	}
 }
 
 func TestPDataReaderTwoPData(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := bufcat(
 		bufpdu(PDUPresentationData, "data1"),
 		bufpdu(PDUPresentationData, "data2"))
 
-	data, finalPDU, err := readPDUs(data)
-	Expect(err).To(BeNil())
-	Expect(string(data.Bytes())).To(Equal("data1data2"))
-	Expect(finalPDU).To(BeNil())
+	data, finalPDU := readPDUs(t, data)
+
+	if got := string(data.Bytes()); got != "data1data2" {
+		t.Errorf("unexpected data: %q", got)
+	}
+	if finalPDU != nil {
+		t.Error("unexpected final pdu")
+	}
 }
 
 func TestPDataReaderOnePDataThenAbort(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := bufcat(
 		bufpdu(PDUPresentationData, "data"),
 		bufpdu(PDUAbort, "notdata"))
 
-	data, abort, err := readPDUs(data)
-	Expect(err).To(BeNil())
-	Expect(string(data.Bytes())).To(Equal("data"))
+	data, abort := readPDUs(t, data)
 
-	Expect(abort).ToNot(BeNil())
-	Expect(abort.Type).To(Equal(PDUAbort))
+	if got := string(data.Bytes()); got != "data" {
+		t.Errorf("unexpected data: %q", data)
+	}
+	if abort == nil {
+		t.Error("didn't get expected abort")
+	} else if abort.Type != PDUAbort {
+		t.Error("unexpected final pdu type: %d", abort.Type)
+	}
 }
 
-func readPDUs(data bytes.Buffer) (buf bytes.Buffer, finalPDU *PDU, err error) {
+func readPDUs(t *testing.T, data bytes.Buffer) (bytes.Buffer, *PDU) {
 	pduDecoder := NewPDUDecoder(&data)
 	pdataReader := NewPDataReader(pduDecoder)
 
 	output, err := ioutil.ReadAll(&pdataReader)
 	if err != nil {
-		return
+		t.Fatalf("unable to read pdata: %s", err)
 	}
 
-	return *bytes.NewBuffer(output), pdataReader.GetFinalPDU(), nil
+	return *bytes.NewBuffer(output), pdataReader.GetFinalPDU()
 }

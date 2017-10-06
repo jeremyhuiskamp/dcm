@@ -4,29 +4,28 @@
 
 package dcm
 
-import (
-	"testing"
+import "testing"
 
-	. "github.com/onsi/gomega"
-)
-
-func TestStandardVR(t *testing.T) {
-	RegisterTestingT(t)
-
-	// with constant:
-	Expect(VRForTag("", PatientID)).To(Equal(LO))
-	// with literal:
-	Expect(VRForTag("", Tag(0x00100020))).To(Equal(LO))
-}
-
-func TestPrivateVR(t *testing.T) {
-	RegisterTestingT(t)
-
-	tag := Tag(0x00010001)
-
+func TestVRForTag(t *testing.T) {
+	privateTag := Tag(0x00010001)
 	NewDataDictionary("private", map[Tag]ElementSpec{
-		tag: {tag: tag, vr: UC},
+		privateTag: {tag: privateTag, vr: UC},
 	})
 
-	Expect(VRForTag("private", tag)).To(Equal(UC))
+	for _, test := range []struct {
+		privateCreatorUID string
+		tag               Tag
+		vr                VR
+	}{
+		{"", PatientID, LO},
+		{"", privateTag, UN},
+		{"private", privateTag, UC},
+		{"private", PatientID, UN},
+	} {
+		if vr := VRForTag(test.privateCreatorUID, test.tag); vr != test.vr {
+			t.Errorf("unexpected vr %s for %s/%s",
+				vr, test.privateCreatorUID, test.tag)
+		}
+	}
+
 }

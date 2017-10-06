@@ -1,14 +1,17 @@
 package dcm
 
-import (
-	"testing"
-
-	. "github.com/onsi/gomega"
-)
+import "testing"
 
 func TestIVRLE(t *testing.T) {
-	RegisterTestingT(t)
-
-	Expect(ImplicitVRLittleEndian.VR()).NotTo(Equal(Explicit))
-	Expect(GetTransferSyntax("1.2.840.10008.1.2").VR()).To(Equal(Implicit))
+	for _, test := range []struct {
+		ts TransferSyntax
+		vr Explicitness
+	}{
+		{ImplicitVRLittleEndian, Implicit},
+		{GetTransferSyntax("1.2.840.10008.1.2"), Implicit},
+	} {
+		if got := test.ts.VR(); got != test.vr {
+			t.Errorf("unexpected vr %s for syntax %s", got, test.ts)
+		}
+	}
 }

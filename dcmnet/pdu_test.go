@@ -2,99 +2,94 @@ package dcmnet
 
 import (
 	"bytes"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"testing"
 )
 
 func TestReadOnePDU(t *testing.T) {
-	RegisterTestingT(t)
-
 	decoder := pduDecoder(bufpdu(0x01, "hai!"))
-	expectNextPDU(decoder, 0x01, "hai!")
+	expectNextPDU(t, decoder, 0x01, "hai!")
 }
 
 func TestReadTwoPDUs(t *testing.T) {
-	RegisterTestingT(t)
-
 	decoder := pduDecoder(bufpdu(0x01, "one"), bufpdu(0x02, "two"))
-	expectNextPDU(decoder, 0x01, "one")
-	expectNextPDU(decoder, 0x02, "two")
+	expectNextPDU(t, decoder, 0x01, "one")
+	expectNextPDU(t, decoder, 0x02, "two")
 }
 
 func TestReadPDUNilForEOF(t *testing.T) {
-	RegisterTestingT(t)
-
 	decoder := pduDecoder()
 	pdu, err := decoder.NextPDU()
-	Expect(pdu).To(BeNil())
-	Expect(err).ToNot(HaveOccurred())
+	if pdu != nil {
+		t.Error("unexpected pdu")
+	}
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestReadDrainFirstPDUWhenAskedForSecond(t *testing.T) {
-	RegisterTestingT(t)
-
 	decoder := pduDecoder(bufpdu(0x01, "one"), bufpdu(0x02, "two"))
 	// not reading value...
 	decoder.NextPDU()
-	expectNextPDU(decoder, 0x02, "two")
+	expectNextPDU(t, decoder, 0x02, "two")
 }
 
 func TestWriteOnePDU(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := new(bytes.Buffer)
 	encoder := NewPDUEncoder(data)
 	encoder.NextPDU(toPDU(PDUPresentationData, "data"))
 
-	typ, content, err := getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUPresentationData))
-	Expect(toString(content)).To(Equal("data"))
+	content := expectPDU(t, data, PDUPresentationData)
+	if got := toString(content); got != "data" {
+		t.Fatalf("unexpected content: %q", got)
+	}
 
-	Expect(data.Len()).To(Equal(0))
+	if data.Len() != 0 {
+		t.Fatalf("unexpected data left over: %q", data.String())
+	}
 }
 
 func TestWriteTwoPDUs(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := new(bytes.Buffer)
 	encoder := NewPDUEncoder(data)
 	encoder.NextPDU(toPDU(PDUPresentationData, "data1"))
 	encoder.NextPDU(toPDU(PDUType(25), "data2"))
 
-	typ, content, err := getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUPresentationData))
-	Expect(toString(content)).To(Equal("data1"))
+	content := expectPDU(t, data, PDUPresentationData)
+	if got := toString(content); got != "data1" {
+		t.Fatalf("unexpected content: %q", got)
+	}
 
-	typ, content, err = getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUType(25)))
-	Expect(toString(content)).To(Equal("data2"))
+	content = expectPDU(t, data, PDUType(25))
+	if got := toString(content); got != "data2" {
+		t.Fatalf("unexpected content: %q", got)
+	}
 
-	Expect(data.Len()).To(Equal(0))
+	if data.Len() != 0 {
+		t.Fatalf("unexpected data left over: %q", data.String())
+	}
 }
 
 func TestWriteEmptyPDU(t *testing.T) {
-	RegisterTestingT(t)
-
 	data := new(bytes.Buffer)
 	encoder := NewPDUEncoder(data)
 	encoder.NextPDU(toPDU(PDUPresentationData, ""))
 	encoder.NextPDU(toPDU(PDUType(25), ""))
 
-	typ, content, err := getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUPresentationData))
-	Expect(toString(content)).To(Equal(""))
+	content := expectPDU(t, data, PDUPresentationData)
+	if got := toString(content); got != "" {
+		t.Fatalf("unexpected content: %q", got)
+	}
 
-	typ, content, err = getpdu(data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(typ).To(Equal(PDUType(25)))
-	Expect(toString(content)).To(Equal(""))
+	content = expectPDU(t, data, PDUType(25))
+	if got := toString(content); got != "" {
+		t.Fatalf("unexpected content: %q", got)
+	}
 
-	Expect(data.Len()).To(Equal(0))
+	if data.Len() != 0 {
+		t.Fatalf("unexpected data left over: %q", data.String())
+	}
 }
 
 func pduDecoder(pdus ...interface{}) PDUDecoder {
@@ -102,16 +97,39 @@ func pduDecoder(pdus ...interface{}) PDUDecoder {
 	return NewPDUDecoder(&b)
 }
 
-func expectNextPDU(decoder PDUDecoder, pduType PDUType, value string) {
+func expectNextPDU(t *testing.T, decoder PDUDecoder, pduType PDUType, value string) {
 	pdu, err := decoder.NextPDU()
 
-	Expect(err).ToNot(HaveOccurred())
-	Expect(pdu).ToNot(BeNil())
+	if err != nil {
+		t.Fatalf("error reading next pdu: %s", err)
+	}
+	if pdu == nil {
+		t.Fatal("didn't get expected pdu")
+	}
 
-	Expect(pdu.Type).To(Equal(pduType))
-	Expect(pdu.Length).To(Equal(uint32(len(value))))
+	if pdu.Type != pduType {
+		t.Fatalf("unexpected pdu type: %s", pdu.Type)
+	}
+	if pdu.Length != uint32(len(value)) {
+		t.Fatalf("unexpected pdu length: %d", pdu.Length)
+	}
 
-	actualvalue, err := ioutil.ReadAll(pdu.Data)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(string(actualvalue)).To(Equal(value))
+	actualValue, err := ioutil.ReadAll(pdu.Data)
+	if err != nil {
+		t.Fatalf("error reading pdu data: %s", err)
+	}
+	if got := string(actualValue); got != value {
+		t.Fatalf("unexpected pdu value: %q", got)
+	}
+}
+
+func expectPDU(t *testing.T, in *bytes.Buffer, expType PDUType) bytes.Buffer {
+	gotType, content, err := getpdu(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if expType != gotType {
+		t.Fatalf("expected %s, got %s", expType, gotType)
+	}
+	return content
 }
