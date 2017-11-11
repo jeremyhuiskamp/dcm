@@ -11,7 +11,7 @@ func TestIVRLE(t *testing.T) {
 		{GetTransferSyntax("1.2.840.10008.1.2"), Implicit},
 	} {
 		if got := test.ts.VR(); got != test.vr {
-			t.Errorf("unexpected vr %s for syntax %s", got, test.ts)
+			t.Errorf("unexpected vr %t for syntax %s", got, test.ts)
 		}
 	}
 }
