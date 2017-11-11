@@ -52,7 +52,7 @@ func TestScan(t *testing.T) {
 		t.Fatal(err)
 	}
 	if cmd != uint16(1) {
-		t.Fatal("unexpected command field: %d", cmd)
+		t.Fatalf("unexpected command field: %d", cmd)
 	}
 
 	if err := NewObject().Scan(CommandField, &cmd); err == nil {

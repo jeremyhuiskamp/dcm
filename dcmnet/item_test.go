@@ -59,16 +59,16 @@ func expectNextItem(t *testing.T, reader ItemReader, itemType ItemType, value st
 		t.Fatal("no item found")
 	}
 	if itemType != item.Type {
-		t.Error("expected type %s, got %s", itemType, item.Type)
+		t.Errorf("expected type %s, got %s", itemType, item.Type)
 	}
 	if len(value) != int(item.Length) {
-		t.Error("expected length %d, got %d", len(value), item.Length)
+		t.Errorf("expected length %d, got %d", len(value), item.Length)
 	}
 	actualValue, err := ioutil.ReadAll(item.Data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if value != string(actualValue) {
-		t.Error("expected value %q, got %q", value, string(actualValue))
+		t.Errorf("expected value %q, got %q", value, string(actualValue))
 	}
 }
