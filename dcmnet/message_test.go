@@ -208,7 +208,7 @@ func TestReadNoMessages(t *testing.T) {
 
 	msg, err := md.NextMessage()
 	if msg != nil || err != nil {
-		t.Fatal("expected neither msg (%V) nor error (%q)", msg, err)
+		t.Fatalf("expected neither msg (%#v) nor error (%q)", msg, err)
 	}
 }
 
@@ -312,7 +312,7 @@ func expectMessageElementError(
 		t.Fatal("expected error while reading message data")
 	}
 	if !strings.Contains(err.Error(), errSubstring) {
-		t.Error("expected %q to contain %q", err.Error(), errSubstring)
+		t.Errorf("expected %q to contain %q", err.Error(), errSubstring)
 	}
 }
 
@@ -322,7 +322,7 @@ func expectNoMoreMessageElements(t *testing.T, msgs *MessageElementDecoder) {
 		t.Fatal(err)
 	}
 	if msg != nil {
-		t.Fatalf("expected no more elements, but got %+V", msg)
+		t.Fatalf("expected no more elements, but got %#v", msg)
 	}
 }
 

@@ -33,7 +33,7 @@ func TestParseAssocRQCEcho(t *testing.T) {
 	got := readAssocRQAC(t, "testdata/assocrq_cecho.bin", PDUAssociateRQ)
 
 	if !reflect.DeepEqual(exp, got) {
-		t.Fatalf("expected\n%+V\ngot\n%+V", exp, got)
+		t.Fatalf("expected\n%#v\ngot\n%#v", exp, got)
 	}
 }
 
@@ -61,7 +61,7 @@ func TestParseAssocACCEcho(t *testing.T) {
 	got := readAssocRQAC(t, "testdata/assocac_cecho.bin", PDUAssociateAC)
 
 	if !reflect.DeepEqual(exp, got) {
-		t.Fatalf("expected\n%+V\ngot\n%+V", exp, got)
+		t.Fatalf("expected\n%#v\ngot\n%#v", exp, got)
 	}
 }
 

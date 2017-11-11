@@ -46,7 +46,7 @@ func TestPDataReaderOnePDataThenAbort(t *testing.T) {
 	if abort == nil {
 		t.Error("didn't get expected abort")
 	} else if abort.Type != PDUAbort {
-		t.Error("unexpected final pdu type: %d", abort.Type)
+		t.Errorf("unexpected final pdu type: %d", abort.Type)
 	}
 }
 
