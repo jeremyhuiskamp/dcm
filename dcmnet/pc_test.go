@@ -110,7 +110,7 @@ func TestPCsSingleUnacceptedContext(t *testing.T) {
 	pcs.Accepted[0].Result = PCUserRejection
 
 	if got := pcs.FindAcceptedTCap(PCID(1)); got != nil {
-		t.Errorf("expected no tcap but got: %d", got)
+		t.Errorf("expected no tcap but got: %#v", got)
 	}
 	if got := pcs.FindAcceptedPCID(matchingTc); got != nil {
 		t.Errorf("expected no pcid but got: %d", got)
