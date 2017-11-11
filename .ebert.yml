@@ -1,0 +1,16 @@
+styleguide: plataformatec/linters
+engines:
+  gofmt:
+    enabled: true
+  govet:
+    enabled: true
+  golint:
+    enabled: true
+  shellcheck:
+    enabled: true
+    exclude_paths:
+    - ci/codecov.sh
+  remark-lint:
+    enabled: true
+exclude_paths: []
+
