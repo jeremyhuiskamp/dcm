@@ -62,11 +62,11 @@ func main() {
 	fmt.Printf("Called AE: %s\n", calledAE)
 	fmt.Printf("Address: %s\n", addr)
 
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		warnf("%s\n", err)
-		return
-	}
+	conn, _ := net.Dial("tcp", addr)
+	// if err != nil {
+	// 	warnf("%s\n", err)
+	// 	return
+	// }
 
 	rq := dcmnet.AssociateRQAC{
 		ProtocolVersion: 1,
