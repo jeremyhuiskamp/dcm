@@ -35,9 +35,9 @@ func debug(format string, elems ...interface{}) {
 }
 
 func writePDU(dst io.Writer, pduType uint16, src bytes.Buffer) {
-	binary.Write(dst, binary.LittleEndian, pduType)
-	binary.Write(dst, binary.BigEndian, uint32(src.Len()))
-	dst.Write(src.Bytes())
+	_ = binary.Write(dst, binary.LittleEndian, pduType)
+	_ = binary.Write(dst, binary.BigEndian, uint32(src.Len()))
+	_, _ = dst.Write(src.Bytes())
 }
 
 func readPDU(src io.Reader) (pduType uint16, pdu io.Reader) {
