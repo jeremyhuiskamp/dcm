@@ -10,10 +10,11 @@ import (
 	"bytes"
 	bin "encoding/binary"
 	"errors"
-	"github.com/jeremyhuiskamp/dcm/dcm"
 	"io"
 	"io/ioutil"
 	"strings"
+
+	"github.com/jeremyhuiskamp/dcm/dcm"
 )
 
 // positionReader wraps another io.Reader and counts the
@@ -74,14 +75,14 @@ func (p *SimpleParser) readTag() (tag *Tag, err error) {
 	tag.Offset = p.GetPosition()
 
 	var bytes [4]byte
-	_, err = io.ReadFull(p.in, bytes[:])
+	/*_, err = */ io.ReadFull(p.in, bytes[:])
 
-	if err == io.EOF {
-		// 0 bytes read, legitimate EOF
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
+	// if err == io.EOF {
+	// 	// 0 bytes read, legitimate EOF
+	// 	return nil, nil
+	// } else if err != nil {
+	// 	return nil, err
+	// }
 
 	order := p.ts.ByteOrder()
 	tag.Tag = dcm.NewTag(
