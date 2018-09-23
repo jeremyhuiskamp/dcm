@@ -1,5 +1,9 @@
 language: go
 
+go:
+  - "1.x"
+  - "master"
+
 script:
   - ci/build_codecov.sh
   - go build ./cmd/...
