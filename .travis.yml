@@ -1,10 +1,8 @@
 language: go
 
-before_install:
-  - go get -t -v ./...
-
 script:
   - ci/build_codecov.sh
+  - go build ./cmd/...
 
 after_success:
   - ci/codecov.sh
